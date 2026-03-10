@@ -1,0 +1,87 @@
+import Link from "next/link";
+import { Avatar } from "@/components/ui/Avatar";
+import { RelativeTime } from "@/components/ui/RelativeTime";
+import type { InboxThread } from "@/features/messages/types";
+
+type InboxPageProps = {
+  threads: InboxThread[];
+};
+
+export function InboxPage({ threads }: InboxPageProps) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-20 border-b border-zinc-100 bg-white/90 px-4 py-4 backdrop-blur-md">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Messages</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Move from comments into 1:1 chats without leaving Motion Meme.
+        </p>
+      </header>
+
+      <div className="flex flex-1 flex-col">
+        {threads.length > 0 ? (
+          threads.map((thread) => (
+            <Link
+              key={thread.conversationId}
+              href={`/messages/${thread.conversationId}`}
+              className="border-b border-zinc-100 px-4 py-4 transition-colors hover:bg-zinc-50"
+            >
+              <div className="flex items-start gap-3">
+                <Avatar
+                  src={thread.otherMember.avatarUrl ?? undefined}
+                  alt={thread.otherMember.handle}
+                  fallback={thread.otherMember.displayName}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-zinc-900">
+                        {thread.otherMember.displayName}
+                      </p>
+                      <p className="truncate text-sm text-zinc-500">
+                        @{thread.otherMember.handle}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {thread.lastMessage ? (
+                        <RelativeTime
+                          dateString={thread.lastMessage.createdAt}
+                          className="text-xs text-zinc-400"
+                        />
+                      ) : null}
+                      {thread.unreadCount > 0 ? (
+                        <span className="rounded-full bg-black px-2 py-1 text-[11px] font-bold text-white">
+                          {thread.unreadCount}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <p className="mt-2 truncate text-sm text-zinc-600">
+                    {thread.lastMessage?.body ?? "Start the conversation"}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+            <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+              Inbox empty
+            </div>
+            <h2 className="mt-4 text-2xl font-bold tracking-tight text-zinc-900">
+              Your direct messages will appear here
+            </h2>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-500">
+              Open a profile or post and tap Message to start a 1:1 thread.
+            </p>
+            <Link
+              href="/feed"
+              className="mt-6 rounded-full bg-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+            >
+              Browse the feed
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
