@@ -31,15 +31,15 @@ export const PlayHistoryPage = ({
   >
     <div className="grid gap-4 lg:grid-cols-[0.88fr_1.12fr]">
       <div className="space-y-4">
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
+        <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-white">Uploaded Highlights</p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-950">Uploaded Highlights</p>
+              <p className="mt-1 text-xs text-zinc-500">
                 업로드 완료된 플레이만 따로 보여준다.
               </p>
             </div>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300">
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-600">
               {history.uploadedSessions.length} clips
             </span>
           </div>
@@ -49,7 +49,7 @@ export const PlayHistoryPage = ({
               history.uploadedSessions.slice(0, 4).map((session) => (
                 <div
                   key={session.id}
-                  className="overflow-hidden rounded-2xl border border-white/10 bg-black/20"
+                  className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
                 >
                   <div className="aspect-video bg-black">
                     {session.videoUrl ? (
@@ -68,10 +68,10 @@ export const PlayHistoryPage = ({
                   </div>
                   <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                     <div>
-                      <p className="font-semibold text-white">
-                        Stage {session.stageNumber} · {session.stageTitle}
-                      </p>
-                      <p className="mt-1 text-zinc-400">
+                        <p className="font-semibold text-zinc-950">
+                          Stage {session.stageNumber} · {session.stageTitle}
+                        </p>
+                        <p className="mt-1 text-zinc-500">
                         {tierLabel[session.resultTier]} · Score {session.score}
                       </p>
                     </div>
@@ -80,27 +80,27 @@ export const PlayHistoryPage = ({
                 </div>
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/15 px-4 py-5 text-sm text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-500">
                 아직 업로드한 플레이가 없다. 먼저 성공 연출을 만들고 공개 피드로 보내면 여기에 쌓인다.
               </div>
             )}
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-          <p className="text-sm font-semibold text-white">Recent Attempts</p>
+        <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
+          <p className="text-sm font-semibold text-zinc-950">Recent Attempts</p>
           <div className="mt-4 space-y-3">
             {history.recentSessions.map((session) => (
               <div
                 key={session.id}
-                className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-white">
+                    <p className="font-semibold text-zinc-950">
                       Stage {session.stageNumber} · {session.stageTitle}
                     </p>
-                    <p className="mt-1 text-sm text-zinc-400">
+                    <p className="mt-1 text-sm text-zinc-500">
                       {tierLabel[session.resultTier]} · Score {session.score} · {session.durationSeconds}s
                     </p>
                   </div>
@@ -112,17 +112,17 @@ export const PlayHistoryPage = ({
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
+      <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-white">Stage Progress</p>
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-950">Stage Progress</p>
+            <p className="mt-1 text-xs text-zinc-500">
               stage별 최고 점수와 최근 시도, 다음 보강 포인트를 한 번에 본다.
             </p>
           </div>
           <Link
             href={`/profile/${history.profile.handle}?tab=videos`}
-            className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/10"
+            className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
           >
             Profile videos
           </Link>
@@ -132,14 +132,14 @@ export const PlayHistoryPage = ({
           {history.stageSummaries.map((stage) => (
             <div
               key={stage.stageId}
-              className="rounded-2xl border border-white/10 bg-black/20 p-4"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-lg font-bold text-white">
+                  <p className="text-lg font-bold text-zinc-950">
                     Stage {stage.stageNumber} · {stage.title}
                   </p>
-                  <p className="mt-1 text-sm text-zinc-400">
+                  <p className="mt-1 text-sm text-zinc-500">
                     {stage.isUnlocked
                       ? stage.isCleared
                         ? "클리어 완료. 최고 기록을 더 올릴 수 있다."
@@ -147,34 +147,34 @@ export const PlayHistoryPage = ({
                       : "이전 스테이지를 클리어하면 해금된다."}
                   </p>
                 </div>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300">
+                <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
                   Best {stage.bestScore}
                 </span>
               </div>
 
               <div className="mt-4 grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
                     Attempts
                   </p>
-                  <p className="mt-2 text-2xl font-black text-white">{stage.attemptCount}</p>
+                  <p className="mt-2 text-2xl font-black text-zinc-950">{stage.attemptCount}</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
                     Recent
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-white">
+                  <p className="mt-2 text-sm font-semibold text-zinc-950">
                     {stage.recentSession
                       ? `${tierLabel[stage.recentSession.resultTier]} · ${stage.recentSession.score}`
                       : "No runs yet"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
                     Last Played
                   </p>
                   {stage.lastAttemptedAt ? (
-                    <RelativeTime dateString={stage.lastAttemptedAt} className="mt-2 text-sm font-semibold text-white" />
+                    <RelativeTime dateString={stage.lastAttemptedAt} className="mt-2 text-sm font-semibold text-zinc-950" />
                   ) : (
                     <p className="mt-2 text-sm font-semibold text-zinc-500">Not yet</p>
                   )}

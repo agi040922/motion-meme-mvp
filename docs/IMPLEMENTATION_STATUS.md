@@ -30,6 +30,7 @@
   - participant 기반 RLS + `supabase_realtime` publication 반영
   - `/messages` inbox / `/messages/[conversationId]` room 추가
   - 피드 / 프로필 / 좌측 네비게이션에서 DM 진입 가능
+  - room presence / typing indicator 2차 보강
 - 플레이 화면 초안 구현
   - `/play` 라우트 추가
   - MediaPipe Pose Landmarker 기반 포즈 점수화 초안
@@ -38,6 +39,7 @@
   - `/camera` 카메라 권한 가이드 / 재시도 흐름 추가
   - `/tutorial` 튜토리얼 / 준비 안내 추가
   - `/history` stage별 최고 점수 / 최근 영상 / 이전 기록 화면 추가
+  - 기존 소셜 카드 시스템과 맞는 중앙 modal-like 레이아웃으로 정리
 - 프로필 / 피드 고도화
   - 프로필 recent uploaded run spotlight 추가
   - featured post 의미를 `featured_post_id` 우선 + 최근 업로드 fallback으로 정리
@@ -88,6 +90,8 @@
   - inbox 목록
   - room 채팅
   - profile / post에서 DM 진입
+  - online / offline 표시
+  - typing 표시
 - 검색/프로필
   - 프로필 조회
   - follow / unfollow
@@ -145,6 +149,9 @@
   - `Saved Memes` -> likes tab
 - search
   - trending 카드 클릭 시 query 검색 연결
+- DM / support polish
+  - room presence / typing indicator
+  - `/play/permissions`, `/play/guide`, `/play/history` modal-like card 정리
 
 ### 이번 턴 의도적으로 defer한 항목
 - `FeedPost`의 share/send 버튼

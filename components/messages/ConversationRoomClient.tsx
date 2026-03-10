@@ -28,8 +28,15 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
   const [messages, setMessages] = useState(room.messages);
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [isOtherMemberOnline, setIsOtherMemberOnline] = useState(false);
+  const [isOtherMemberTyping, setIsOtherMemberTyping] = useState(false);
   const [isPending, startTransition] = useTransition();
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+  const typingChannelRef = useRef<{
+    sendTyping: (isTyping: boolean) => Promise<void>;
+    unsubscribe: () => void;
+  } | null>(null);
   const currentUserSenderRef = useRef(
     room.messages.find((message) => message.senderUserId === room.currentUserId)?.sender ?? {
       userId: room.currentUserId,
@@ -46,7 +53,10 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
   useEffect(() => {
     void markConversationRead(room.conversationId);
 
-    return subscribeToConversation(room.conversationId, (payload) => {
+    const subscription = subscribeToConversation(
+      room.conversationId,
+      room.currentUserId,
+      (payload) => {
       setMessages((current) =>
         mergeMessage(current, {
           id: payload.id,
@@ -61,7 +71,24 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
         }),
       );
       void markConversationRead(room.conversationId);
-    });
+      },
+      (userIds) => {
+        setIsOtherMemberOnline(userIds.includes(room.otherMember.userId));
+      },
+      (typingUserIds) => {
+        setIsOtherMemberTyping(typingUserIds.includes(room.otherMember.userId));
+      },
+    );
+
+    typingChannelRef.current = subscription;
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        window.clearTimeout(typingTimeoutRef.current);
+      }
+      typingChannelRef.current?.unsubscribe();
+      typingChannelRef.current = null;
+    };
   }, [room.conversationId, room.currentUserId, room.otherMember]);
 
   return (
@@ -81,7 +108,11 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
           />
           <div className="min-w-0">
             <p className="truncate font-semibold text-zinc-900">{room.otherMember.displayName}</p>
-            <p className="truncate text-sm text-zinc-500">@{room.otherMember.handle}</p>
+            <p className="truncate text-sm text-zinc-500">
+              @{room.otherMember.handle}
+              <span className="mx-2 text-zinc-300">·</span>
+              {isOtherMemberTyping ? "typing..." : isOtherMemberOnline ? "online" : "offline"}
+            </p>
           </div>
         </div>
       </header>
@@ -134,7 +165,18 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
         <div className="mt-4 rounded-[28px] border border-zinc-200 bg-white p-3 shadow-sm">
           <textarea
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              void typingChannelRef.current?.sendTyping(event.target.value.trim().length > 0);
+
+              if (typingTimeoutRef.current) {
+                window.clearTimeout(typingTimeoutRef.current);
+              }
+
+              typingTimeoutRef.current = window.setTimeout(() => {
+                void typingChannelRef.current?.sendTyping(false);
+              }, 1200);
+            }}
             rows={3}
             placeholder={`Message ${room.otherMember.displayName}...`}
             className="w-full resize-none border-none bg-transparent text-sm leading-6 text-zinc-900 outline-none placeholder:text-zinc-400"
@@ -173,6 +215,7 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
 
                   setMessages((current) => mergeMessage(current, optimisticMessage));
                   setDraft("");
+                  void typingChannelRef.current?.sendTyping(false);
 
                   try {
                     const insertedMessage = await sendDirectMessage(room.conversationId, trimmedDraft);

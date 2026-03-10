@@ -41,18 +41,18 @@ export const TutorialGuide = ({
     >
       <div className="grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-4">
-          <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
               Status
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   Unlocked
                 </p>
-                <p className="mt-2 text-3xl font-black text-white">{unlockedCount}</p>
+                <p className="mt-2 text-3xl font-black text-zinc-950">{unlockedCount}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   Best Score
                 </p>
@@ -63,24 +63,24 @@ export const TutorialGuide = ({
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold text-white">지금 바로 해볼 수 있는 스테이지</p>
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
+            <p className="text-sm font-semibold text-zinc-950">지금 바로 해볼 수 있는 스테이지</p>
             <div className="mt-4 space-y-3">
               {dashboard.stages.slice(0, 4).map((stage) => {
                 const progress = dashboard.progressByStageId[stage.id];
                 return (
                   <div
                     key={stage.id}
-                    className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                    className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-bold text-white">
+                        <p className="text-sm font-bold text-zinc-950">
                           Stage {stage.stageNumber} · {stage.title}
                         </p>
-                        <p className="mt-1 text-xs text-zinc-400">{stage.instructionText}</p>
+                        <p className="mt-1 text-xs text-zinc-500">{stage.instructionText}</p>
                       </div>
-                      <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-zinc-300">
+                      <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-600">
                         {progress ? `Best ${progress.bestScore}` : "Locked"}
                       </span>
                     </div>
@@ -91,26 +91,26 @@ export const TutorialGuide = ({
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-          <p className="text-sm font-semibold text-white">플레이 3단계 흐름</p>
+        <div className="rounded-[28px] border border-zinc-200 bg-white p-5">
+          <p className="text-sm font-semibold text-zinc-950">플레이 3단계 흐름</p>
           <div className="mt-4 space-y-3">
             {TUTORIAL_STEPS.map((step, index) => (
               <div
                 key={step.title}
-                className="rounded-2xl border border-white/10 bg-black/20 p-4"
+                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a3ff00]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
                   Phase {index + 1}
                 </p>
-                <p className="mt-2 text-xl font-bold text-white">{step.title}</p>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">{step.body}</p>
+                <p className="mt-2 text-xl font-bold text-zinc-950">{step.title}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">{step.body}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-300">
-            성공 연출과 업로드 루프를 바로 보려면 <Link href="/play" className="font-semibold text-white underline decoration-white/30 underline-offset-4">플레이</Link>,
-            이전 최고 점수와 최근 클립을 먼저 보고 들어가려면 <Link href="/history" className="font-semibold text-white underline decoration-white/30 underline-offset-4">기록</Link>으로 이동한다.
+          <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+            성공 연출과 업로드 루프를 바로 보려면 <Link href="/play" className="font-semibold text-zinc-950 underline decoration-zinc-300 underline-offset-4">플레이</Link>,
+            이전 최고 점수와 최근 클립을 먼저 보고 들어가려면 <Link href="/history" className="font-semibold text-zinc-950 underline decoration-zinc-300 underline-offset-4">기록</Link>으로 이동한다.
           </div>
         </div>
       </div>

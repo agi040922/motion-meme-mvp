@@ -126,11 +126,24 @@ export const markConversationRead = async (conversationId: string) => {
 
 export const subscribeToConversation = (
   conversationId: string,
+  currentUserId: string,
   onMessage: (message: MessageInsertRow) => void,
+  onPresenceChange?: (userIds: string[]) => void,
+  onTypingChange?: (typingUserIds: string[]) => void,
 ) => {
   const supabase = createBrowserSupabaseClient();
+  const typingUserIds = new Set<string>();
   const channel = supabase
-    .channel(`dm:${conversationId}`)
+    .channel(`dm:${conversationId}`, {
+      config: {
+        presence: {
+          key: currentUserId,
+        },
+        broadcast: {
+          self: false,
+        },
+      },
+    })
     .on(
       "postgres_changes",
       {
@@ -143,10 +156,52 @@ export const subscribeToConversation = (
         onMessage(payload.new as MessageInsertRow);
       },
     )
-    .subscribe();
+    .on("presence", { event: "sync" }, () => {
+      const presenceState = channel.presenceState();
+      const presentUserIds = Object.values(presenceState)
+        .flatMap((entries) => entries.map((entry) => String(entry.presence_ref ?? "")))
+        .filter(Boolean);
+      onPresenceChange?.(presentUserIds);
+    })
+    .on("broadcast", { event: "typing" }, ({ payload }) => {
+      const userId = String(payload?.userId ?? "");
+      const isTyping = Boolean(payload?.isTyping);
 
-  return () => {
-    void supabase.removeChannel(channel);
+      if (!userId || userId === currentUserId) {
+        return;
+      }
+
+      if (isTyping) {
+        typingUserIds.add(userId);
+      } else {
+        typingUserIds.delete(userId);
+      }
+
+      onTypingChange?.(Array.from(typingUserIds));
+    })
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({
+          userId: currentUserId,
+          onlineAt: new Date().toISOString(),
+        });
+      }
+    });
+
+  return {
+    sendTyping: async (isTyping: boolean) => {
+      await channel.send({
+        type: "broadcast",
+        event: "typing",
+        payload: {
+          userId: currentUserId,
+          isTyping,
+        },
+      });
+    },
+    unsubscribe: () => {
+      void supabase.removeChannel(channel);
+    },
   };
 };
 

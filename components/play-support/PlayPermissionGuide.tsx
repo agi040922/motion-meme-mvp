@@ -138,26 +138,26 @@ export function PlayPermissionGuide() {
   const copy = getPermissionCopy(permissionState);
 
   return (
-    <section className="flex flex-col gap-6 px-4 py-6 md:px-6">
-      <div className="overflow-hidden rounded-[28px] bg-black text-white shadow-[0_24px_80px_-40px_rgba(0,0,0,0.75)]">
-        <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(163,255,0,0.35),_transparent_38%),linear-gradient(135deg,_rgba(255,255,255,0.08),_rgba(255,255,255,0))] px-6 py-6 md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#a3ff00]">
+    <section className="flex flex-col gap-6">
+      <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-100 bg-zinc-50 px-6 py-6 md:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
             {copy.eyebrow}
           </p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-zinc-950 md:text-4xl">
             {copy.title}
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-300 md:text-base">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 md:text-base">
             {copy.body}
           </p>
         </div>
 
         <div className="grid gap-4 px-6 py-6 md:grid-cols-[1.4fr_1fr] md:px-8">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
               Recommended setup
             </p>
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-zinc-200">
+            <ul className="mt-4 space-y-3 text-sm leading-6 text-zinc-700">
               <li>Keep your face, shoulders, elbows, and hips inside frame.</li>
               <li>Stand 1 to 1.5 meters away to reduce landmark jitter.</li>
               <li>Use front-facing light and avoid bright windows behind you.</li>
@@ -165,11 +165,11 @@ export function PlayPermissionGuide() {
             </ul>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
               Recovery checklist
             </p>
-            <ol className="mt-4 space-y-3 text-sm leading-6 text-zinc-200">
+            <ol className="mt-4 space-y-3 text-sm leading-6 text-zinc-700">
               <li>1. Unlock camera access in the browser site settings.</li>
               <li>2. Confirm OS-level camera permission for the browser.</li>
               <li>3. Close Zoom, Meet, FaceTime, or any active camera app.</li>
@@ -180,7 +180,7 @@ export function PlayPermissionGuide() {
       </div>
 
       {feedback ? (
-        <div className="rounded-3xl border border-zinc-200 bg-white px-5 py-4 text-sm text-zinc-700 shadow-sm">
+        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-700">
           {feedback}
         </div>
       ) : null}
