@@ -350,6 +350,7 @@ export function ComposeModal({
               </Button>
             </div>
           </div>
+        </div>
       </div>
     </Modal>
   );
