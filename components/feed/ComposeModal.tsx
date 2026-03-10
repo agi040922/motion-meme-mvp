@@ -292,66 +292,54 @@ export function ComposeModal({
           />
           
           <div className="mt-4 rounded-3xl border border-zinc-100 bg-white p-3">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="justify-start gap-3 rounded-2xl border-zinc-200 px-4 py-3 text-left focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0"
-                disabled={!currentUser || isBusy}
-                onClick={() => imageInputRef.current?.click()}
-              >
-                <ImageIcon className="h-5 w-5" />
-                <span>
-                  <span className="block text-sm font-semibold text-zinc-900">Attach image</span>
-                  <span className="block text-xs text-zinc-500">Upload or paste a screenshot</span>
-                </span>
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="justify-start gap-3 rounded-2xl border-zinc-200 px-4 py-3 text-left focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0"
-                disabled={!currentUser || isBusy}
-                onClick={() => videoInputRef.current?.click()}
-              >
-                <VideoIcon className="h-5 w-5 shrink-0" />
-                <span>
-                  <span className="block text-sm font-semibold">Attach video</span>
-                  <span className="block text-xs text-zinc-500">Upload a local clip</span>
-                </span>
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="justify-start gap-3 rounded-2xl border-zinc-200 px-4 py-3 text-left focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0"
-                disabled={!currentUser || isBusy}
-                onClick={() => textareaRef.current?.focus()}
-              >
-                <TypeIcon className="h-5 w-5" />
-                <span>
-                  <span className="block text-sm font-semibold">Text mode</span>
-                  <span className="block text-xs text-zinc-500">Jump back to writing only</span>
-                </span>
-              </Button>
-              <Link
-                href={currentUser ? '/camera' : '/auth/login?next=/camera'}
-                className={`inline-flex items-center justify-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 ${
-                  currentUser
-                    ? 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50'
-                    : 'pointer-events-none border-zinc-200 bg-zinc-50 text-zinc-400'
-                }`}
-              >
-                <CameraIcon className="h-5 w-5 shrink-0" />
-                <span>
-                  <span className="block text-sm font-semibold">Open /play</span>
-                  <span className="block text-xs text-zinc-500">Record a motion clip first</span>
-                </span>
-              </Link>
-            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  title="Attach image"
+                  className="h-11 w-11 rounded-2xl border-zinc-200 focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0"
+                  disabled={!currentUser || isBusy}
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  <ImageIcon className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  title="Attach video"
+                  className="h-11 w-11 rounded-2xl border-zinc-200 focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0"
+                  disabled={!currentUser || isBusy}
+                  onClick={() => videoInputRef.current?.click()}
+                >
+                  <VideoIcon className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  title="Text mode"
+                  className="h-11 w-11 rounded-2xl border-zinc-200 focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0"
+                  disabled={!currentUser || isBusy}
+                  onClick={() => textareaRef.current?.focus()}
+                >
+                  <TypeIcon className="h-5 w-5" />
+                </Button>
+                <Link
+                  href={currentUser ? '/camera' : '/auth/login?next=/camera'}
+                  title="Open /play"
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 ${
+                    currentUser
+                      ? 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50'
+                      : 'pointer-events-none border-zinc-200 bg-zinc-50 text-zinc-400'
+                  }`}
+                >
+                  <CameraIcon className="h-5 w-5" />
+                </Link>
+              </div>
 
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
-              <p className="text-xs text-zinc-500">
-                Available now: text, image upload, video upload, screenshot paste, and /play clips.
-              </p>
               <Button
                 variant="primary"
                 className="rounded-full px-6 focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0"
@@ -362,7 +350,6 @@ export function ComposeModal({
               </Button>
             </div>
           </div>
-        </div>
       </div>
     </Modal>
   );

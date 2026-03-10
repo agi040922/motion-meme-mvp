@@ -33,11 +33,6 @@ export const TutorialGuide = ({
       eyebrow="Tutorial"
       title="포즈 판정은 복잡하지 않다. 몸을 크게 맞추고 잠깐 유지하면 된다."
       description="튜토리얼은 `/play` 본체 대신 준비 흐름을 분리해서 보여준다. 지금 해금된 스테이지 수와 최근 흐름을 보고 바로 플레이에 들어갈 수 있다."
-      actions={[
-        { href: "/play", label: "튜토리얼 끝내고 플레이" },
-        { href: "/play/permissions", label: "권한 가이드", variant: "secondary" },
-        { href: "/history", label: "내 기록", variant: "secondary" },
-      ]}
     >
       <div className="grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-4">
