@@ -162,6 +162,13 @@ export type SearchResult = ProfileSummary & {
   recentPostCount: number;
 };
 
+export type SearchTrend = {
+  id: string;
+  context: string;
+  label: string;
+  postCountLabel: string;
+};
+
 export type PlayDashboardData = {
   profile: ProfileSummary;
   stages: StageRecord[];

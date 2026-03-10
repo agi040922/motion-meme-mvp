@@ -6,28 +6,12 @@ import {
   adaptDomainProfile,
   matchesProfileQuery,
   matchesTrendQuery,
-  type SearchTrend,
 } from '@/components/layout/socialUi';
-import { getViewerProfileSummary, searchProfiles } from '@/features/meme/server';
+import { getViewerProfileSummary, listTrendingTopics, searchProfiles } from '@/features/meme/server';
 
 export const metadata = {
   title: "Motion Meme - Search & Follow",
 };
-
-const TRENDING_MEMES: SearchTrend[] = [
-  {
-    id: 'trend-1',
-    context: 'Trending in Motion',
-    label: '#ShootingStars',
-    postCountLabel: '12.4k posts',
-  },
-  {
-    id: 'trend-2',
-    context: 'Trending in Stage 2',
-    label: 'Awkward Look',
-    postCountLabel: '8.2k posts',
-  },
-];
 
 export default async function SearchPage({
   searchParams,
@@ -37,7 +21,11 @@ export default async function SearchPage({
   const viewerProfile = await getViewerProfileSummary();
   const currentUser = viewerProfile ? adaptDomainProfile(viewerProfile) : null;
   const query = searchParams?.q?.trim() ?? '';
-  const recommendedUsers = (await searchProfiles(query))
+  const [rawUsers, rawTrends] = await Promise.all([
+    searchProfiles(query),
+    listTrendingTopics(),
+  ]);
+  const recommendedUsers = rawUsers
     .map((user) => adaptDomainProfile(user))
     .filter((user) => {
     if (!query && user.relationship.isCurrentUser) {
@@ -46,7 +34,7 @@ export default async function SearchPage({
 
     return matchesProfileQuery(user, query);
   });
-  const visibleTrends = TRENDING_MEMES.filter((trend) => matchesTrendQuery(trend, query));
+  const visibleTrends = rawTrends.filter((trend) => matchesTrendQuery(trend, query));
   const hasQuery = query.length > 0;
   const resultCount = recommendedUsers.length + visibleTrends.length;
   const resultLabel = hasQuery

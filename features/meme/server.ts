@@ -19,6 +19,7 @@ import type {
   ProfileStatsRecord,
   ProfileSummary,
   SearchResult,
+  SearchTrend,
   StageHistorySummary,
   StageProgressRecord,
   StageRecord,
@@ -904,6 +905,77 @@ export const searchProfiles = cache(async (query = "") => {
       recentPostCount: postsCountMap.get(profileRow.user_id) ?? 0,
     }))
     .sort((left, right) => right.followerCount - left.followerCount) as SearchResult[];
+});
+
+export const listTrendingTopics = cache(async (): Promise<SearchTrend[]> => {
+  const supabase = getMemeServerClient();
+  const { data, error } = await supabase
+    .from("feed_posts")
+    .select("id, caption, like_count, comment_count, stage_title")
+    .limit(80)
+    .order("published_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  const trendScores = new Map<
+    string,
+    {
+      label: string;
+      score: number;
+      source: string;
+      count: number;
+    }
+  >();
+
+  const pushTrend = (label: string, source: string, score: number) => {
+    const normalized = label.trim();
+    if (!normalized) {
+      return;
+    }
+
+    const key = normalized.toLowerCase();
+    const existing = trendScores.get(key);
+    if (existing) {
+      existing.score += score;
+      existing.count += 1;
+      return;
+    }
+
+    trendScores.set(key, {
+      label: normalized,
+      score,
+      source,
+      count: 1,
+    });
+  };
+
+  for (const row of (data ?? []) as Array<{
+    caption: string;
+    like_count: number;
+    comment_count: number;
+    stage_title: string | null;
+  }>) {
+    const score = row.like_count * 2 + row.comment_count * 3 + 1;
+
+    if (row.stage_title) {
+      pushTrend(row.stage_title, "Stage momentum", score);
+    }
+
+    const hashtags = row.caption.match(/#[A-Za-z0-9_-]+/g) ?? [];
+    hashtags.slice(0, 3).forEach((tag) => pushTrend(tag, "Trending in Motion", score));
+  }
+
+  return Array.from(trendScores.values())
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 6)
+    .map((trend, index) => ({
+      id: `trend-${index + 1}-${trend.label.toLowerCase().replace(/\s+/g, '-')}`,
+      context: trend.source,
+      label: trend.label.startsWith("#") ? trend.label : trend.label,
+      postCountLabel: `${trend.count} signal${trend.count === 1 ? "" : "s"}`,
+    }));
 });
 
 export const getPlayDashboardData = cache(async (userId: string): Promise<PlayDashboardData> => {
