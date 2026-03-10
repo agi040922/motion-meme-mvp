@@ -221,21 +221,21 @@
 
 - `FeedPost`의 more 버튼
   - 위치: `components/feed/FeedPost.tsx`
-  - 상태: 부분 구현
+  - 상태: 2차 구현 완료
   - 현재 동작:
     - 자기 글: `Edit post`, `Delete post`
-    - 타인 글: 아직 비활성
+    - 타인 글: `Save post`, `Copy link`, `Report post`, `Hide post`, `Block user`
 
 ### 글쓰기 모달
 
 - compose의 video 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
-  - 상태: 비활성
-  - 현재 동작: 없음
+  - 상태: 1차 구현 완료
+  - 현재 동작: local video file attach
 - compose의 type 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
-  - 상태: 비활성
-  - 현재 동작: 없음
+  - 상태: 1차 구현 완료
+  - 현재 동작: textarea focus / text-first mode shortcut
 - compose의 camera 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
   - 상태: 실제 동작
@@ -245,15 +245,19 @@
 
 - profile menu의 `Display`
   - 위치: `components/profile/ProfileMenuLayer.tsx`
-  - 상태: 비활성
-  - 현재 동작: 없음
+  - 상태: 1차 구현 완료
+  - 현재 동작:
+    - compact feed
+    - autoplay videos
 
 ### 검색
 
 - trending meme 카드들
   - 위치: `app/search/page.tsx`
-  - 상태: UI-only
-  - 현재 동작: 없음
+  - 상태: 1차 구현 완료
+  - 현재 동작:
+    - 실제 데이터 기반 trending 계산
+    - 클릭 시 검색 query 이동
 
 ### 플레이
 
