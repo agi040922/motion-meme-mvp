@@ -8,6 +8,9 @@ type InboxPageProps = {
 };
 
 export function InboxPage({ threads }: InboxPageProps) {
+  const unreadThreadCount = threads.filter((thread) => thread.unreadCount > 0).length;
+  const unreadMessageCount = threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-zinc-100 bg-white/90 px-4 py-4 backdrop-blur-md">
@@ -15,6 +18,13 @@ export function InboxPage({ threads }: InboxPageProps) {
         <p className="mt-1 text-sm text-zinc-500">
           Move from comments into 1:1 chats without leaving Motion Meme.
         </p>
+        {threads.length > 0 ? (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-600">
+            <span>{unreadThreadCount} unread thread{unreadThreadCount === 1 ? '' : 's'}</span>
+            <span className="text-zinc-300">·</span>
+            <span>{unreadMessageCount} unread message{unreadMessageCount === 1 ? '' : 's'}</span>
+          </div>
+        ) : null}
       </header>
 
       <div className="flex flex-1 flex-col">
@@ -58,6 +68,11 @@ export function InboxPage({ threads }: InboxPageProps) {
                   <p className="mt-2 truncate text-sm text-zinc-600">
                     {thread.lastMessage?.body ?? "Start the conversation"}
                   </p>
+                  {thread.unreadCount > 0 ? (
+                    <p className="mt-1 text-xs font-semibold text-zinc-900">
+                      New since your last read
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </Link>

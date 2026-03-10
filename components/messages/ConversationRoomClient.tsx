@@ -32,6 +32,7 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
   const [isOtherMemberTyping, setIsOtherMemberTyping] = useState(false);
   const [isPending, startTransition] = useTransition();
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingChannelRef = useRef<{
     sendTyping: (isTyping: boolean) => Promise<void>;
@@ -49,6 +50,10 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     void markConversationRead(room.conversationId);
@@ -164,6 +169,7 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
 
         <div className="mt-4 rounded-[28px] border border-zinc-200 bg-white p-3 shadow-sm">
           <textarea
+            ref={textareaRef}
             value={draft}
             onChange={(event) => {
               setDraft(event.target.value);
@@ -177,6 +183,14 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
                 void typingChannelRef.current?.sendTyping(false);
               }, 1200);
             }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                if (!isPending && draft.trim()) {
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }
+            }}
             rows={3}
             placeholder={`Message ${room.otherMember.displayName}...`}
             className="w-full resize-none border-none bg-transparent text-sm leading-6 text-zinc-900 outline-none placeholder:text-zinc-400"
@@ -184,72 +198,75 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
           {sendError ? (
             <p className="mt-2 text-sm text-red-500">{sendError}</p>
           ) : null}
-          <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const trimmedDraft = draft.trim();
+              if (!trimmedDraft) {
+                return;
+              }
+
+              startTransition(async () => {
+                setSendError(null);
+                const optimisticMessage = toOptimisticRoomMessage(
+                  {
+                    id: `pending-${Date.now()}`,
+                    conversationId: room.conversationId,
+                    senderUserId: room.currentUserId,
+                    body: trimmedDraft,
+                    createdAt: new Date().toISOString(),
+                  },
+                  currentUserSenderRef.current,
+                );
+
+                setMessages((current) => mergeMessage(current, optimisticMessage));
+                setDraft("");
+                void typingChannelRef.current?.sendTyping(false);
+
+                try {
+                  const insertedMessage = await sendDirectMessage(room.conversationId, trimmedDraft);
+                  setMessages((current) =>
+                    mergeMessage(
+                      current.filter((message) => message.id !== optimisticMessage.id),
+                      {
+                        id: insertedMessage.id,
+                        conversationId: insertedMessage.conversation_id,
+                        senderUserId: insertedMessage.sender_user_id,
+                        body: insertedMessage.body,
+                        createdAt: insertedMessage.created_at,
+                        sender: currentUserSenderRef.current,
+                      },
+                    ),
+                  );
+                  void markConversationRead(room.conversationId);
+                } catch (error) {
+                  setMessages((current) =>
+                    current.filter((message) => message.id !== optimisticMessage.id),
+                  );
+                  setDraft(trimmedDraft);
+                  setSendError(
+                    error instanceof Error
+                      ? error.message
+                      : "Message could not be sent. Please try again.",
+                  );
+                }
+              });
+            }}
+            className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3"
+          >
             <p className="text-xs text-zinc-400">
-              Realtime updates appear here while this room is open.
+              Realtime updates appear here while this room is open. Enter sends, Shift+Enter adds a new line.
             </p>
             <Button
-              type="button"
+              type="submit"
               variant="primary"
               size="sm"
               className="px-4"
               disabled={isPending || !draft.trim()}
-              onClick={() => {
-                const trimmedDraft = draft.trim();
-                if (!trimmedDraft) {
-                  return;
-                }
-
-                startTransition(async () => {
-                  setSendError(null);
-                  const optimisticMessage = toOptimisticRoomMessage(
-                    {
-                      id: `pending-${Date.now()}`,
-                      conversationId: room.conversationId,
-                      senderUserId: room.currentUserId,
-                      body: trimmedDraft,
-                      createdAt: new Date().toISOString(),
-                    },
-                    currentUserSenderRef.current,
-                  );
-
-                  setMessages((current) => mergeMessage(current, optimisticMessage));
-                  setDraft("");
-                  void typingChannelRef.current?.sendTyping(false);
-
-                  try {
-                    const insertedMessage = await sendDirectMessage(room.conversationId, trimmedDraft);
-                    setMessages((current) =>
-                      mergeMessage(
-                        current.filter((message) => message.id !== optimisticMessage.id),
-                        {
-                          id: insertedMessage.id,
-                          conversationId: insertedMessage.conversation_id,
-                          senderUserId: insertedMessage.sender_user_id,
-                          body: insertedMessage.body,
-                          createdAt: insertedMessage.created_at,
-                          sender: currentUserSenderRef.current,
-                        },
-                      ),
-                    );
-                    void markConversationRead(room.conversationId);
-                  } catch (error) {
-                    setMessages((current) =>
-                      current.filter((message) => message.id !== optimisticMessage.id),
-                    );
-                    setDraft(trimmedDraft);
-                    setSendError(
-                      error instanceof Error
-                        ? error.message
-                        : "Message could not be sent. Please try again.",
-                    );
-                  }
-                });
-              }}
             >
               {isPending ? "Sending..." : "Send"}
             </Button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
