@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useBrowserCapabilities } from "@/lib/browserCapabilities";
 type PermissionStateValue =
   | "checking"
   | "prompt"
@@ -55,6 +56,7 @@ export function PlayPermissionGuide() {
   const [permissionState, setPermissionState] = useState<PermissionStateValue>("checking");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
+  const capabilities = useBrowserCapabilities();
 
   useEffect(() => {
     let mounted = true;
@@ -178,6 +180,21 @@ export function PlayPermissionGuide() {
           </div>
         </div>
       </div>
+
+      {capabilities.isSafari || capabilities.isMobile || !capabilities.supportsPermissionsApi ? (
+        <div className="rounded-3xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            Browser fallback
+          </p>
+          <p className="mt-2 text-sm leading-6 text-zinc-700">
+            {capabilities.isSafari
+              ? "Safari may not expose the camera permission state in advance. If the check looks stalled, request access directly and retry from here."
+              : capabilities.isMobile
+                ? "Mobile browsers can delay or suppress clipboard and autoplay behavior. Prefer direct camera request and file attach actions."
+                : "This browser may skip the Permissions API. Use direct camera request if the status card does not update."}
+          </p>
+        </div>
+      ) : null}
 
       {feedback ? (
         <div className="rounded-3xl border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-700">

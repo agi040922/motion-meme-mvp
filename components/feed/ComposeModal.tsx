@@ -10,6 +10,7 @@ import type { SocialIdentity } from '@/components/layout/socialUi';
 import { VideoIcon, ImageIcon, TypeIcon, CameraIcon } from '../ui/icons';
 import { createPost } from '@/features/meme/browser';
 import type { MediaType } from '@/features/meme/types';
+import { useBrowserCapabilities } from '@/lib/browserCapabilities';
 
 interface ComposeModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export function ComposeModal({
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const router = useRouter();
+  const capabilities = useBrowserCapabilities();
   const isBusy = isSubmitting || isPending;
   const canPost =
     Boolean(currentUser) &&
@@ -218,6 +220,12 @@ export function ComposeModal({
               </Link>
             </p>
           )}
+
+          {currentUser && !capabilities.supportsClipboardImagePaste ? (
+            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              This browser does not reliably support image paste. Use the image button to attach screenshots instead.
+            </div>
+          ) : null}
 
           {selectedMedia && selectedMediaUrl && (
             <div className="mt-4 overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50">
