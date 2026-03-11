@@ -295,6 +295,8 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const referenceVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cleanCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cleanCanvasCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const rawRecorderRef = useRef<MediaRecorder | null>(null);
@@ -478,6 +480,29 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
     ctx.restore();
   };
 
+  const renderCleanCameraScene = () => {
+    const cameraVideo = videoRef.current;
+    const cleanCanvas = cleanCanvasRef.current;
+    const cleanCtx = cleanCanvasCtxRef.current;
+    if (!cameraVideo || !cleanCanvas || !cleanCtx) {
+      return;
+    }
+
+    cleanCtx.clearRect(0, 0, cleanCanvas.width, cleanCanvas.height);
+    cleanCtx.fillStyle = "#050505";
+    cleanCtx.fillRect(0, 0, cleanCanvas.width, cleanCanvas.height);
+    cleanCtx.save();
+    cleanCtx.scale(-1, 1);
+    cleanCtx.drawImage(
+      cameraVideo,
+      -cleanCanvas.width,
+      0,
+      cleanCanvas.width,
+      cleanCanvas.height,
+    );
+    cleanCtx.restore();
+  };
+
   const resolveAttemptSnapshot = (snapshot?: AttemptSnapshot): AttemptSnapshot => {
     if (bestAttemptRef.current.score > 0 || bestAttemptRef.current.holdMs > 0) {
       return {
@@ -534,6 +559,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
 
     const startedAt = performance.now();
     const renderCelebration = () => {
+      renderCleanCameraScene();
       ctx.save();
       ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
       ctx.scale(-1, 1);
@@ -738,6 +764,8 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
     rawChunksRef.current = [];
     recorderRef.current = null;
     rawRecorderRef.current = null;
+    cleanCanvasRef.current = null;
+    cleanCanvasCtxRef.current = null;
     latestBreakdownRef.current = {};
 
     if (previewUrl) {
@@ -812,11 +840,20 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
       const outputCanvas = canvas;
       outputCanvas.width = video.videoWidth || 960;
       outputCanvas.height = video.videoHeight || 540;
+      const cleanCanvas = document.createElement("canvas");
+      cleanCanvas.width = outputCanvas.width;
+      cleanCanvas.height = outputCanvas.height;
+      cleanCanvasRef.current = cleanCanvas;
 
       const ctx = outputCanvas.getContext("2d");
       if (!ctx) {
         throw new Error("Canvas context could not be created.");
       }
+      const cleanCtx = cleanCanvas.getContext("2d");
+      if (!cleanCtx) {
+        throw new Error("Clean canvas context could not be created.");
+      }
+      cleanCanvasCtxRef.current = cleanCtx;
 
       const startRecorder = () => {
         const recorderStream = outputCanvas.captureStream(24);
@@ -847,8 +884,10 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
         recorder.start(400);
 
         if (!isDuetMode) {
+          renderCleanCameraScene();
+          const rawRecorderStream = cleanCanvas.captureStream(24);
           const rawRecorder = new MediaRecorder(
-            stream,
+            rawRecorderStream,
             mimeType ? { mimeType } : undefined,
           );
           rawRecorderRef.current = rawRecorder;
@@ -879,6 +918,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
           return;
         }
 
+        renderCleanCameraScene();
         renderCameraScene(ctx, outputCanvas);
 
         const detection = landmarker.detectForVideo(
@@ -1016,6 +1056,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
 
         const guideStartedAt = performance.now();
         const renderGuideLoop = () => {
+          renderCleanCameraScene();
           renderCameraScene(ctx, outputCanvas);
 
           const elapsed = performance.now() - guideStartedAt;
@@ -1337,6 +1378,68 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                           phase === "result" && previewUrl ? "hidden" : "block"
                         }`}
                       />
+                      {duetReferenceClip &&
+                      (phase === "idle" || phase === "preparing") &&
+                      !selectedPreviewUrl ? (
+                        <div className="absolute inset-0 grid grid-cols-1 gap-4 bg-zinc-950/60 p-5 md:grid-cols-2">
+                          <div className="overflow-hidden rounded-2xl border border-zinc-700 bg-black">
+                            <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+                              <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
+                                  Reference clip
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-white">
+                                  @{duetReferenceClip.authorHandle}
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-300">
+                                Stage {duetReferenceClip.stageNumber}
+                              </span>
+                            </div>
+                            <video
+                              src={duetReferenceClip.videoUrl}
+                              poster={duetReferenceClip.posterUrl ?? undefined}
+                              controls
+                              playsInline
+                              className="aspect-video w-full bg-black object-contain"
+                            />
+                            <div className="px-4 py-3">
+                              <p className="text-sm font-semibold text-white">
+                                {duetReferenceClip.stageTitle}
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-zinc-400">
+                                Watch the uploaded run on the left, then start your camera to mirror the move on the right.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col justify-center rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/80 px-6 py-8 text-center">
+                            <div className="mx-auto inline-flex rounded-full bg-zinc-800 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                              Your side
+                            </div>
+                            <h3 className="mt-5 text-2xl font-black tracking-tight text-white">
+                              Match the rhythm, then hit Start
+                            </h3>
+                            <p className="mt-3 text-sm leading-6 text-zinc-400">
+                              The final upload will keep @{duetReferenceClip.authorHandle}&apos;s clip on the left and your camera run on the right.
+                            </p>
+                            <div className="mt-5 grid gap-2.5 text-left">
+                              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3.5">
+                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 1</p>
+                                <p className="mt-1.5 text-sm font-semibold text-white">Watch the reference clip once</p>
+                              </div>
+                              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3.5">
+                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 2</p>
+                                <p className="mt-1.5 text-sm font-semibold text-white">Start the challenge and mirror the pose</p>
+                              </div>
+                              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3.5">
+                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 3</p>
+                                <p className="mt-1.5 text-sm font-semibold text-white">Upload and DM if the vibe matches</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                       {phase === "result" && selectedPreviewUrl ? (
                         <>
                           <div className="absolute left-4 top-4 z-10 rounded-full bg-black/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
