@@ -155,7 +155,7 @@
 
 ### 이번 턴 의도적으로 defer한 항목
 - `FeedPost`의 share/send 버튼
-  - 상태: 1차 구현 완료
+  - 상태: 2차 구현 완료
   - 현재 동작:
     - Web Share API 또는 clipboard copy
   - 후속 필요:
@@ -168,12 +168,12 @@
     - 타인 글: `Save post`, `Copy link`, `Report post`, `Hide post`, `Block user`
 - compose의 video 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
-  - 상태: 1차 구현 완료
+  - 상태: 2차 구현 완료
   - 현재 동작:
     - local video file attach
 - compose의 type 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
-  - 상태: 1차 구현 완료
+  - 상태: 2차 구현 완료
   - 현재 동작:
     - textarea focus / text-first mode shortcut
 - `Edit profile`
@@ -200,11 +200,12 @@
   - 저장 방식:
     - localStorage
 - 검색의 trending meme 카드들
-  - 상태: 1차 구현 완료
+  - 상태: 2차 구현 완료
   - 현재 동작:
+    - 실제 데이터 기반 trending 계산
     - 클릭 시 해당 키워드로 `/search?q=...` 이동
   - 후속 필요:
-    - 실제 trending 산정 로직 연결
+    - 추천 피드와의 결합
 - 플레이의 locked stage 버튼들
   - 위치: `features/play/PlayExperience.tsx`
   - 상태: 계속 의도적 비활성
@@ -230,16 +231,16 @@
 
 - compose의 video 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
-  - 상태: 1차 구현 완료
+  - 상태: 2차 구현 완료
   - 현재 동작: local video file attach
 - compose의 type 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
-  - 상태: 1차 구현 완료
+  - 상태: 2차 구현 완료
   - 현재 동작: textarea focus / text-first mode shortcut
 - compose의 camera 아이콘
   - 위치: `components/feed/ComposeModal.tsx`
-  - 상태: 실제 동작
-  - 현재 동작: `/play` 이동
+  - 상태: 제거
+  - 현재 동작: 없음
 
 ### 프로필
 
@@ -254,7 +255,7 @@
 
 - trending meme 카드들
   - 위치: `app/search/page.tsx`
-  - 상태: 1차 구현 완료
+  - 상태: 2차 구현 완료
   - 현재 동작:
     - 실제 데이터 기반 trending 계산
     - 클릭 시 검색 query 이동

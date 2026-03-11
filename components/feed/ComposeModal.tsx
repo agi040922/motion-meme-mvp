@@ -7,7 +7,7 @@ import { Modal } from '../ui/Modal';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import type { SocialIdentity } from '@/components/layout/socialUi';
-import { VideoIcon, ImageIcon, TypeIcon, CameraIcon } from '../ui/icons';
+import { VideoIcon, ImageIcon, TypeIcon } from '../ui/icons';
 import { createPost } from '@/features/meme/browser';
 import type { MediaType } from '@/features/meme/types';
 import { useBrowserCapabilities } from '@/lib/browserCapabilities';
@@ -213,12 +213,17 @@ export function ComposeModal({
           </div>
 
           {!currentUser && (
-            <p className="mt-3 text-sm text-zinc-500">
-              Posting is available once a signed-in profile is present.{" "}
-              <Link href="/auth/login?next=/feed" className="font-semibold text-zinc-900 underline">
-                Sign in
-              </Link>
-            </p>
+            <Link
+              href="/auth/login?next=/feed"
+              className="mt-3 flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-100"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Sign in to post
+            </Link>
           )}
 
           {currentUser && !capabilities.supportsClipboardImagePaste ? (
@@ -301,7 +306,7 @@ export function ComposeModal({
           
           <div className="mt-4 rounded-3xl border border-zinc-100 bg-white p-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="secondary"
@@ -335,17 +340,6 @@ export function ComposeModal({
                 >
                   <TypeIcon className="h-5 w-5" />
                 </Button>
-                <Link
-                  href={currentUser ? '/camera' : '/auth/login?next=/camera'}
-                  title="Open /play"
-                  className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 ${
-                    currentUser
-                      ? 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50'
-                      : 'pointer-events-none border-zinc-200 bg-zinc-50 text-zinc-400'
-                  }`}
-                >
-                  <CameraIcon className="h-5 w-5" />
-                </Link>
               </div>
 
               <Button

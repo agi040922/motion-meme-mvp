@@ -120,11 +120,12 @@ export function ProfilePageClient({
                   </div>
                 </div>
               ) : (
+                /* 최근 플레이 영상이 없을 때 표시되는 빈 상태 영역
+                   업로드된 플레이 영상이 생기면 이 자리에 비디오 스포트라이트가 표시된다. */
                 <div className="rounded-[28px] border border-dashed border-zinc-200 bg-white px-5 py-6">
                   <p className="text-sm font-semibold text-zinc-900">Recent video spotlight</p>
                   <p className="mt-2 text-sm leading-6 text-zinc-500">
-                    Uploaded play videos appear here first so the profile immediately shows motion
-                    performance, not only text posts.
+                    Play a stage and upload your clip to feature it here.
                   </p>
                 </div>
               )}
@@ -138,10 +139,8 @@ export function ProfilePageClient({
                     <p className="mt-2 text-xl font-bold text-zinc-900">
                       {featuredPost.body || featuredPost.stageResult?.memeLabel || 'Pinned highlight'}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-500">
-                      대표 밈/대표 post는 현재 구조에서 `featured_post_id` 기준으로 우선 정하고,
-                      없으면 최근 업로드 영상으로 대체한다.
-                    </p>
+                    {/* 대표 밈/대표 post는 featured_post_id 기준으로 우선 정하고,
+                        없으면 최근 업로드 영상으로 대체한다. */}
                     <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-500">
                       <span className="rounded-full bg-zinc-100 px-3 py-1">
                         {featuredPost.kind === 'stage_result' ? 'Play video' : 'Profile post'}
@@ -156,8 +155,9 @@ export function ProfilePageClient({
                   </div>
                 ) : null}
 
+                {/* 최근 업로드된 플레이 영상 목록 (업로드 완료된 영상이 생기면 이 구역에서 먼저 강조) */}
                 <div className="rounded-[28px] border border-zinc-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-zinc-900">Recent upload lane</p>
+                  <p className="text-sm font-semibold text-zinc-900">Recent uploads</p>
                   <div className="mt-4 space-y-3">
                     {recentSessions.length > 0 ? (
                       recentSessions.slice(0, 3).map((session) => (
@@ -190,7 +190,7 @@ export function ProfilePageClient({
                       ))
                     ) : (
                       <p className="text-sm leading-6 text-zinc-500">
-                        업로드 완료된 플레이 영상이 생기면 이 구역에서 먼저 강조된다.
+                        No uploaded clips yet. Complete a stage to see it here.
                       </p>
                     )}
                   </div>

@@ -11,7 +11,6 @@ import {
   PlusIcon,
   UserIcon,
   SettingsIcon,
-  PlayIcon,
   MessageCircleIcon,
   HistoryIcon,
 } from '../ui/icons';
@@ -113,13 +112,6 @@ export function LeftRail({ currentUser, initialComposeOpen = false }: LeftRailPr
             <PlusIcon className="w-5 h-5" />
             <span>{composeLabel}</span>
           </button>
-          <Link
-            href={currentUser ? "/camera" : "/auth/login?next=/camera"}
-            className="w-full flex items-center justify-center gap-2 bg-black text-white py-4 rounded-2xl font-bold text-lg hover:bg-zinc-800 transition-colors shadow-lg shadow-black/10"
-          >
-            <PlayIcon className="w-5 h-5 fill-white" />
-            <span>Camera Check</span>
-          </Link>
         </div>
 
         {/* Mobile Compose FAB */}

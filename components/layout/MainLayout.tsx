@@ -39,28 +39,6 @@ export function MainLayout({
             >
               Start Challenge
             </Link>
-            {currentUser ? (
-              <div className="mt-4 grid gap-2">
-                <Link
-                  href="/play/guide"
-                  className="block w-full rounded-xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-200"
-                >
-                  Open Play Guide
-                </Link>
-                <Link
-                  href="/play/history"
-                  className="block w-full rounded-xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-200"
-                >
-                  Review History
-                </Link>
-                <Link
-                  href="/play/permissions"
-                  className="block w-full rounded-xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-200"
-                >
-                  Camera Permission Guide
-                </Link>
-              </div>
-            ) : null}
           </div>
         </div>
       </aside>

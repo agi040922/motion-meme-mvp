@@ -50,7 +50,7 @@ export default async function FeedPage({
           </div>
           <Link
             href={currentUser ? `/feed?sort=${sortMode}&compose=true` : "/auth/login?next=/feed"}
-            className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+            className="whitespace-nowrap rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
           >
             {currentUser ? "Compose" : "Sign in"}
           </Link>
