@@ -7,11 +7,20 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className = '', variant = 'primary', size = 'md', fullWidth = false, children, ...props }, ref) => {
-    
-    let baseStyles = 'inline-flex items-center justify-center font-medium rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ';
-    
-    // Variants
+  (
+    {
+      className = '',
+      variant = 'primary',
+      size = 'md',
+      fullWidth = false,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
+    let baseStyles =
+      'inline-flex items-center justify-center font-medium rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ';
+
     if (variant === 'primary') {
       baseStyles += ' bg-black text-white hover:bg-zinc-800 focus:ring-black ';
     } else if (variant === 'secondary') {
@@ -24,7 +33,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       baseStyles += ' bg-red-500 text-white hover:bg-red-600 focus:ring-red-500 ';
     }
 
-    // Sizes
     if (size === 'sm') {
       baseStyles += ' px-3 py-1.5 text-sm ';
     } else if (size === 'md') {
@@ -44,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = 'Button';

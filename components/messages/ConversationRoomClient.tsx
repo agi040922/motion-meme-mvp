@@ -52,6 +52,8 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
     },
   );
   const capabilities = useBrowserCapabilities();
+  const isDatingIntro = room.specialRequest?.intent === "dating_intro";
+  const isBrandCollab = room.specialRequest?.intent === "brand_collab";
   const composerHint = capabilities.supportsClipboardImagePaste
     ? "Paste screenshots here. Enter sends, Shift+Enter adds a new line."
     : capabilities.isSafari || capabilities.isMobile
@@ -150,7 +152,15 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
   }, [room.conversationId, room.currentUserId, room.otherMember]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div
+      className={`flex min-h-screen flex-col ${
+        isDatingIntro
+          ? "bg-[radial-gradient(circle_at_top,_rgba(244,114,182,0.14),_transparent_38%),linear-gradient(180deg,#fff8fb_0%,#ffffff_28%)]"
+          : isBrandCollab
+            ? "bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.14),_transparent_38%),linear-gradient(180deg,#f7fbff_0%,#ffffff_28%)]"
+            : "bg-white"
+      }`}
+    >
       <header className="sticky top-0 z-20 border-b border-zinc-100 bg-white/90 px-4 py-4 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Link
@@ -178,6 +188,40 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
       </header>
 
       <div className="flex flex-1 flex-col px-4 py-5">
+        {room.specialRequest ? (
+          <div
+            className={`mb-4 rounded-[28px] border px-5 py-4 ${
+              isDatingIntro
+                ? "border-rose-200 bg-[linear-gradient(135deg,#fff1f7_0%,#fff8fb_100%)]"
+                : "border-sky-200 bg-[linear-gradient(135deg,#eef8ff_0%,#f8fbff_100%)]"
+            }`}
+          >
+            <p
+              className={`text-xs font-semibold uppercase tracking-[0.18em] ${
+                isDatingIntro ? "text-rose-500" : "text-sky-600"
+              }`}
+            >
+              {isDatingIntro ? "Dating intro" : "Brand / collab"}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="text-lg font-bold text-zinc-900">
+                {isDatingIntro
+                  ? "This chat started as a dating intro."
+                  : "This chat started as a brand or collab request."}
+              </p>
+              {room.specialRequest.creditsSpent > 0 ? (
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-700 shadow-sm">
+                  {room.specialRequest.creditsSpent} credits spent
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 text-sm leading-6 text-zinc-500">
+              {isDatingIntro
+                ? "A softer intro theme is active for this room."
+                : "A polished pitch theme is active for this room."}
+            </p>
+          </div>
+        ) : null}
         <div className="flex-1 space-y-3 overflow-y-auto pb-6">
           {messages.length > 0 ? (
             messages.map((message) => {

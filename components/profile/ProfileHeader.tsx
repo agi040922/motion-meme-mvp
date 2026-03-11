@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import type { ProfileTab, SocialProfile } from '@/components/layout/socialUi';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
+import { BuyCreditsModal } from '@/components/profile/BuyCreditsModal';
 import { StartDmButton } from '@/components/messages/StartDmButton';
 import { toggleFollow } from '@/features/meme/browser';
+import { useCreditBalance } from '@/lib/credits';
 
 interface ProfileHeaderProps {
   user: SocialProfile;
@@ -31,8 +33,10 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const router = useRouter();
   const [isFollowing, setIsFollowing] = useState(user.relationship.isFollowing);
+  const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isCurrentUser = user.relationship.isCurrentUser;
+  const { balance } = useCreditBalance();
   const visibleTabs = isCurrentUser
     ? PROFILE_TABS
     : PROFILE_TABS.filter((tab) => tab.id !== 'likes');
@@ -111,6 +115,16 @@ export function ProfileHeader({
 
       {/* Stats row */}
       <div className="flex gap-6 text-sm mb-6">
+        {isCurrentUser ? (
+          <button
+            type="button"
+            onClick={() => setIsBuyCreditsOpen(true)}
+            className="flex gap-1.5 rounded-full px-2 py-1 text-left transition-colors hover:bg-zinc-100"
+          >
+            <span className="font-bold text-zinc-900">{balance}</span>
+            <span className="text-zinc-500">Credits</span>
+          </button>
+        ) : null}
         <div className="flex gap-1.5">
           <span className="font-bold text-zinc-900">{user.stats.following}</span>
           <span className="text-zinc-500">Following</span>
@@ -157,6 +171,10 @@ export function ProfileHeader({
           </button>
         ))}
       </div>
+
+      {isCurrentUser ? (
+        <BuyCreditsModal isOpen={isBuyCreditsOpen} onClose={() => setIsBuyCreditsOpen(false)} />
+      ) : null}
     </div>
   );
 }
