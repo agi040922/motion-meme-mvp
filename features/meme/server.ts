@@ -51,6 +51,42 @@ type ProfileStatsRow = {
   last_played_at: string | null;
 };
 
+const mapProfileStatsRow = (stats: ProfileStatsRow | null): ProfileStatsRecord | null =>
+  stats
+    ? {
+        userId: stats.user_id,
+        postCount: Number(stats.post_count),
+        followerCount: Number(stats.follower_count),
+        followingCount: Number(stats.following_count),
+        bestScore: Number(stats.best_score),
+        totalPlayCount: Number(stats.total_play_count),
+        uploadedPlayCount: Number(stats.uploaded_play_count),
+        lastPlayedAt: stats.last_played_at,
+      }
+    : null;
+
+const loadPublicProfileStats = async (userIds: string[]) => {
+  const supabase = getMemeServerClient();
+  if (userIds.length === 0) {
+    return new Map<string, ProfileStatsRecord>();
+  }
+
+  const { data, error } = await supabase.rpc("list_public_profile_stats", {
+    p_user_ids: userIds,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map<string, ProfileStatsRecord>(
+    ((data ?? []) as ProfileStatsRow[])
+      .map((row) => mapProfileStatsRow(row))
+      .filter((row): row is ProfileStatsRecord => Boolean(row))
+      .map((row) => [row.userId, row]),
+  );
+};
+
 type StageRow = {
   id: string;
   stage_number: number;
@@ -601,12 +637,8 @@ export const getProfileByHandle = async (handle: string) => {
     }
   }
 
-  const [statsResult, followResult, posts, recentSessionsResult] = await Promise.all([
-    supabase
-      .from("profile_stats")
-      .select("*")
-      .eq("user_id", typedProfile.user_id)
-      .single(),
+  const [statsMap, followResult, posts, recentSessionsResult] = await Promise.all([
+    loadPublicProfileStats([typedProfile.user_id]),
     viewer
       ? supabase
           .from("follows")
@@ -635,10 +667,6 @@ export const getProfileByHandle = async (handle: string) => {
       .limit(4),
   ]);
 
-  if (statsResult.error) {
-    throw statsResult.error;
-  }
-
   if (posts.error) {
     throw posts.error;
   }
@@ -657,18 +685,7 @@ export const getProfileByHandle = async (handle: string) => {
       createdAt: typedProfile.created_at,
       updatedAt: typedProfile.updated_at,
     },
-    statsResult.data
-      ? {
-          userId: statsResult.data.user_id,
-          postCount: statsResult.data.post_count,
-          followerCount: statsResult.data.follower_count,
-          followingCount: statsResult.data.following_count,
-          bestScore: statsResult.data.best_score,
-          totalPlayCount: statsResult.data.total_play_count,
-          uploadedPlayCount: statsResult.data.uploaded_play_count,
-          lastPlayedAt: statsResult.data.last_played_at,
-        }
-      : null,
+    statsMap.get(typedProfile.user_id) ?? null,
     viewer?.id ?? null,
     Boolean(followResult.data),
   );
@@ -839,10 +856,8 @@ export const searchProfiles = cache(async (query = "") => {
     .map((row) => row.user_id)
     .filter((userId) => !blockedIds.has(userId));
 
-  const [statsResult, followsResult, postsResult] = await Promise.all([
-    userIds.length > 0
-      ? supabase.from("profile_stats").select("*").in("user_id", userIds)
-      : Promise.resolve({ data: [] as ProfileStatsRow[], error: null }),
+  const [statsMap, followsResult, postsResult] = await Promise.all([
+    loadPublicProfileStats(userIds),
     viewer && userIds.length > 0
       ? supabase
           .from("follows")
@@ -859,10 +874,6 @@ export const searchProfiles = cache(async (query = "") => {
       : Promise.resolve({ data: [] as { author_user_id: string }[], error: null }),
   ]);
 
-  if (statsResult.error) {
-    throw statsResult.error;
-  }
-
   if (followsResult.error) {
     throw followsResult.error;
   }
@@ -871,21 +882,6 @@ export const searchProfiles = cache(async (query = "") => {
     throw postsResult.error;
   }
 
-  const statsMap = new Map<string, ProfileStatsRecord>(
-    ((statsResult.data ?? []) as ProfileStatsRow[]).map((stat) => [
-      stat.user_id,
-      {
-        userId: stat.user_id,
-        postCount: stat.post_count,
-        followerCount: stat.follower_count,
-        followingCount: stat.following_count,
-        bestScore: stat.best_score,
-        totalPlayCount: stat.total_play_count,
-        uploadedPlayCount: stat.uploaded_play_count,
-        lastPlayedAt: stat.last_played_at,
-      } satisfies ProfileStatsRecord,
-    ]),
-  );
   const followingIds = new Set(
     ((followsResult.data ?? []) as { following_user_id: string }[]).map(
       (item) => item.following_user_id,
@@ -1280,9 +1276,9 @@ export const getProfileSummaryByUserId = cache(async (userId: string) => {
   const supabase = getMemeServerClient();
   const viewer = await getCurrentUser();
 
-  const [profileResult, statsResult, followResult] = await Promise.all([
+  const [profileResult, statsMap, followResult] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", userId).single(),
-    supabase.from("profile_stats").select("*").eq("user_id", userId).single(),
+    loadPublicProfileStats([userId]),
     viewer
       ? supabase
           .from("follows")
@@ -1296,12 +1292,9 @@ export const getProfileSummaryByUserId = cache(async (userId: string) => {
   if (profileResult.error) {
     return null;
   }
-  if (statsResult.error) {
-    throw statsResult.error;
-  }
 
   const profile = profileResult.data as ProfileQueryRow;
-  const stats = statsResult.data as ProfileStatsRow;
+  const stats = statsMap.get(userId) ?? null;
 
   return toProfileSummary(
     {
@@ -1314,16 +1307,7 @@ export const getProfileSummaryByUserId = cache(async (userId: string) => {
       createdAt: profile.created_at,
       updatedAt: profile.updated_at,
     },
-    {
-      userId: stats.user_id,
-      postCount: stats.post_count,
-      followerCount: stats.follower_count,
-      followingCount: stats.following_count,
-      bestScore: stats.best_score,
-      totalPlayCount: stats.total_play_count,
-      uploadedPlayCount: stats.uploaded_play_count,
-      lastPlayedAt: stats.last_played_at,
-    },
+    stats,
     viewer?.id ?? null,
     Boolean(followResult.data),
   );
@@ -1583,16 +1567,7 @@ export const getViewerProfileSummary = async () => {
       createdAt: profile.created_at,
       updatedAt: profile.updated_at,
     },
-    {
-      userId: stats.user_id,
-      postCount: stats.post_count,
-      followerCount: stats.follower_count,
-      followingCount: stats.following_count,
-      bestScore: stats.best_score,
-      totalPlayCount: stats.total_play_count,
-      uploadedPlayCount: stats.uploaded_play_count,
-      lastPlayedAt: stats.last_played_at,
-    },
+    mapProfileStatsRow((stats ?? null) as ProfileStatsRow | null),
     viewer.id,
     false,
   );
