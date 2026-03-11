@@ -241,6 +241,35 @@ const drawDuetSuccessOverlay = ({
   ctx.fillText(`${score} pts · keep both sides in frame`, width / 2 - 146, 78);
 };
 
+const drawCountdownOverlay = ({
+  ctx,
+  remainingSeconds,
+  width,
+}: {
+  ctx: CanvasRenderingContext2D;
+  remainingSeconds: number;
+  width: number;
+}) => {
+  const isCritical = remainingSeconds <= 5;
+  const label = `${remainingSeconds}s`;
+  const badgeWidth = isCritical ? 118 : 104;
+  const badgeHeight = isCritical ? 68 : 60;
+  const badgeX = width - badgeWidth - 24;
+  const badgeY = 120;
+
+  ctx.fillStyle = isCritical ? "rgba(255, 123, 107, 0.94)" : "rgba(9, 9, 11, 0.76)";
+  ctx.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
+  ctx.strokeStyle = isCritical ? "#ffb2a8" : "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(badgeX, badgeY, badgeWidth, badgeHeight);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = '700 11px Inter, sans-serif';
+  ctx.fillText("TIME LEFT", badgeX + 14, badgeY + 18);
+  ctx.font = isCritical ? '900 34px "Arial Black", Inter, sans-serif' : '800 30px "Arial Black", Inter, sans-serif';
+  ctx.fillText(label, badgeX + 14, badgeY + 50);
+};
+
 const getVideoDrawRect = ({
   containerHeight,
   containerWidth,
@@ -1078,6 +1107,19 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
           outputCanvas.width - 140,
           82,
         );
+
+        const elapsedSeconds = startTimeRef.current
+          ? (Date.now() - startTimeRef.current) / 1000
+          : 0;
+        const remainingSeconds = Math.max(
+          0,
+          Math.ceil(selectedStage.timeLimitSeconds - elapsedSeconds),
+        );
+        drawCountdownOverlay({
+          ctx,
+          remainingSeconds,
+          width: outputCanvas.width,
+        });
 
         if (pose) {
           ctx.fillStyle = "#b8ff41";
