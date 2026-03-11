@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { ensureDirectConversation, startSpecialConversation } from "@/features/messages/client";
+import {
+  ensureDirectConversation,
+  getExistingDirectConversation,
+  startSpecialConversation,
+} from "@/features/messages/client";
 import { BuyCreditsModal } from "@/components/profile/BuyCreditsModal";
 import { SPECIAL_DM_COST, useCreditBalance, type SpecialDmIntent } from "@/lib/credits";
 
@@ -83,7 +87,33 @@ export function StartDmButton({
         size={size}
         className={className}
         disabled={isPending}
-        onClick={() => setIsIntentOpen(true)}
+        onClick={() => {
+          startTransition(async () => {
+            setErrorMessage(null);
+
+            try {
+              const existingConversationId = await getExistingDirectConversation(targetUserId);
+              if (existingConversationId) {
+                router.push(`/messages/${existingConversationId}`);
+                router.refresh();
+                return;
+              }
+
+              setIsIntentOpen(true);
+            } catch (error) {
+              if (error instanceof Error && error.message.includes("signed in")) {
+                router.push("/auth/login?next=/messages");
+                return;
+              }
+
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : `Direct messages for @${targetHandle} are unavailable right now.`;
+              setErrorMessage(message);
+            }
+          });
+        }}
       >
         {isPending ? "Opening..." : label}
       </Button>

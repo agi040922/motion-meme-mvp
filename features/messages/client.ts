@@ -173,6 +173,15 @@ const findExistingConversation = async (currentUserId: string, targetUserId: str
   return (existing?.conversation_id as string | undefined) ?? null;
 };
 
+export const getExistingDirectConversation = async (targetUserId: string) => {
+  const currentUserId = await getCurrentUserId();
+  if (currentUserId === targetUserId) {
+    return null;
+  }
+
+  return findExistingConversation(currentUserId, targetUserId);
+};
+
 export const ensureDirectConversation = async (targetUserId: string) => {
   const currentUserId = await getCurrentUserId();
   if (currentUserId === targetUserId) {
