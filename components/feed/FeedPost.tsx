@@ -32,7 +32,7 @@ interface FeedPostProps {
 
 const DUET_TAG_PATTERN = /^with\s+@([a-z0-9._-]+)\s*[·-]\s*/i;
 
-export function FeedPost({ post }: FeedPostProps) {
+export function FeedPost({ post, currentUser }: FeedPostProps) {
   const router = useRouter();
   const [isLiked, setIsLiked] = useState(post.viewerState.liked);
   const [isSaved, setIsSaved] = useState(post.viewerState.saved);
@@ -60,6 +60,9 @@ export function FeedPost({ post }: FeedPostProps) {
   const isVideo = post.media?.kind === 'video';
   const canComment = Boolean(post.viewerState.currentUserId);
   const { preferences } = useDisplayPreferences();
+  const isCurrentUsersPost =
+    (currentUser?.id && post.author.id === currentUser.id) ||
+    post.author.relationship.isCurrentUser;
   const duetMatch = body.match(DUET_TAG_PATTERN);
   const duetHandle = duetMatch?.[1] ?? null;
   const postBody = duetMatch ? body.replace(DUET_TAG_PATTERN, '') : body;
@@ -415,7 +418,7 @@ export function FeedPost({ post }: FeedPostProps) {
             <div className="flex items-center gap-1.5 overflow-hidden text-sm">
               <span className="truncate font-bold text-zinc-900">{post.author.displayName}</span>
               <span className="truncate text-zinc-500">@{post.author.handle}</span>
-              {post.author.relationship.isCurrentUser && (
+              {isCurrentUsersPost && (
                 <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   You
                 </span>
@@ -424,7 +427,7 @@ export function FeedPost({ post }: FeedPostProps) {
               <RelativeTime dateString={post.createdAt} className="shrink-0 text-zinc-500" />
             </div>
 
-            {post.author.relationship.isCurrentUser ? (
+            {isCurrentUsersPost ? (
               <div className="relative">
                 <button
                   type="button"
@@ -598,7 +601,7 @@ export function FeedPost({ post }: FeedPostProps) {
             </div>
           )}
 
-          {post.kind === 'stage_result' && isVideo && !post.author.relationship.isCurrentUser ? (
+          {post.kind === 'stage_result' && isVideo && !isCurrentUsersPost ? (
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Link
                 href={`/play?reference=${post.id}`}
