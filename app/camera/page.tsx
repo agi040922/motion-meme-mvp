@@ -1,7 +1,4 @@
-import { MainLayout } from "@/components/layout/MainLayout";
-import { adaptDomainProfile } from "@/components/layout/socialUi";
-import { PlayPermissionGuide } from "@/components/play-support/PlayPermissionGuide";
-import { getViewerProfileSummary } from "@/features/meme/server";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/auth";
 
 export const metadata = {
@@ -11,12 +8,5 @@ export const metadata = {
 
 export default async function CameraGuidePage() {
   await requireUser("/camera");
-  const viewerProfile = await getViewerProfileSummary();
-  const currentUser = viewerProfile ? adaptDomainProfile(viewerProfile) : null;
-
-  return (
-    <MainLayout currentUser={currentUser}>
-      <PlayPermissionGuide />
-    </MainLayout>
-  );
+  redirect("/play");
 }

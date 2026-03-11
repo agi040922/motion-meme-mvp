@@ -25,7 +25,6 @@ export const PlayHistoryPage = ({
     description="스테이지별 최고 점수, 최근 플레이, 업로드 완료 영상만 따로 묶어 보여준다. `/play` 본체를 바꾸지 않고도 보조 제품 흐름을 완성하는 목적이다."
     actions={[
       { href: "/play", label: "다시 플레이" },
-      { href: "/play/permissions", label: "카메라 체크", variant: "secondary" },
       { href: "/play/tutorial", label: "튜토리얼", variant: "secondary" },
     ]}
   >
