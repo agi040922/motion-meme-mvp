@@ -406,19 +406,31 @@ export function FeedPost({ post, currentUser }: FeedPostProps) {
     >
       <div className="flex gap-4">
         <div className="flex shrink-0 flex-col items-center">
-          <Avatar
-            src={post.author.avatarUrl ?? undefined}
-            alt={post.author.handle}
-            fallback={post.author.displayName}
-          />
+          <Link href={`/profile/${post.author.handle}`} className="rounded-full">
+            <Avatar
+              src={post.author.avatarUrl ?? undefined}
+              alt={post.author.handle}
+              fallback={post.author.displayName}
+            />
+          </Link>
           <div className="mt-2 hidden h-full min-h-[40px] w-[1px] flex-grow bg-zinc-200" />
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 overflow-hidden text-sm">
-              <span className="truncate font-bold text-zinc-900">{post.author.displayName}</span>
-              <span className="truncate text-zinc-500">@{post.author.handle}</span>
+              <Link
+                href={`/profile/${post.author.handle}`}
+                className="truncate font-bold text-zinc-900 transition-colors hover:underline"
+              >
+                {post.author.displayName}
+              </Link>
+              <Link
+                href={`/profile/${post.author.handle}`}
+                className="truncate text-zinc-500 transition-colors hover:text-zinc-700 hover:underline"
+              >
+                @{post.author.handle}
+              </Link>
               {isCurrentUsersPost && (
                 <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   You
@@ -558,9 +570,12 @@ export function FeedPost({ post, currentUser }: FeedPostProps) {
           ) : postBody || duetHandle ? (
             <div className="mb-3 space-y-2">
               {duetHandle ? (
-                <div className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                <Link
+                  href={`/profile/${duetHandle}`}
+                  className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700 transition-colors hover:bg-emerald-100"
+                >
                   with @{duetHandle}
-                </div>
+                </Link>
               ) : null}
               {postBody ? (
                 <p className="whitespace-pre-wrap leading-relaxed text-zinc-800">{postBody}</p>
