@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { notFound } from "next/navigation";
 import {
   sendTestCommentEmailAction,
   sendTestDmEmailAction,
@@ -25,6 +26,10 @@ export default async function EmailTestPage({
     status?: string;
   };
 }) {
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
+
   const admin = createAdminSupabaseClient();
   const meme = admin.schema("meme");
 

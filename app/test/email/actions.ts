@@ -17,8 +17,15 @@ type EmailTestUser = {
 };
 
 const EMAIL_TEST_REDIRECT = "/test/email";
+const ensureEmailTestPageAvailable = () => {
+  if (process.env.NODE_ENV === "production") {
+    redirect("/");
+  }
+};
 
 const loadEmailTestUsers = async () => {
+  ensureEmailTestPageAvailable();
+
   const admin = createAdminSupabaseClient();
   const meme = admin.schema("meme");
 
