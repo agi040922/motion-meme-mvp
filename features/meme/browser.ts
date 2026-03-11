@@ -345,19 +345,8 @@ export const updateComment = async (commentId: string, content: string) => {
 };
 
 export const deletePost = async (postId: string) => {
-  const userId = await requireSignedInUserId();
+  await requireSignedInUserId();
   const meme = getMemeBrowserClient();
-  const { data: ownedPost, error: postLookupError } = await meme
-    .from("posts")
-    .select("id")
-    .eq("id", postId)
-    .eq("author_user_id", userId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (postLookupError || !ownedPost) {
-    throw new Error("Post could not be deleted. Please try again.");
-  }
 
   const { data: mediaRows, error: mediaError } = await meme
     .from("post_media")
@@ -368,12 +357,9 @@ export const deletePost = async (postId: string) => {
     throw new Error("Post media could not be loaded for deletion.");
   }
 
-  const { error } = await meme
-    .from("posts")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", postId)
-    .eq("author_user_id", userId)
-    .is("deleted_at", null);
+  const { error } = await meme.rpc("soft_delete_own_post", {
+    p_post_id: postId,
+  });
 
   if (error) {
     throw new Error("Post could not be deleted. Please try again.");

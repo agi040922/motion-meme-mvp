@@ -2040,6 +2040,35 @@ begin
 end;
 $$;
 
+create or replace function meme.soft_delete_own_post(p_post_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = meme, public
+as $$
+declare
+  v_user_id uuid;
+begin
+  v_user_id := auth.uid();
+
+  if v_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  update meme.posts
+  set deleted_at = now()
+  where id = p_post_id
+    and author_user_id = v_user_id
+    and deleted_at is null;
+
+  if not found then
+    raise exception 'Post not available';
+  end if;
+
+  return true;
+end;
+$$;
+
 create or replace function meme.mark_conversation_read(
   p_conversation_id uuid,
   p_message_id uuid default null
@@ -2402,6 +2431,7 @@ grant execute on function meme.ensure_direct_conversation(uuid) to authenticated
 grant execute on function meme.get_viewer_credit_balance() to authenticated, service_role;
 grant execute on function meme.purchase_mock_credits(integer, text) to authenticated, service_role;
 grant execute on function meme.start_special_conversation(uuid, text, text, text) to authenticated, service_role;
+grant execute on function meme.soft_delete_own_post(uuid) to authenticated, service_role;
 grant execute on function meme.list_public_profile_stats(uuid[]) to anon, authenticated, service_role;
 grant execute on function meme.mark_conversation_read(uuid, uuid) to authenticated, service_role;
 grant execute on function meme.get_dm_email_notification_payload(uuid) to authenticated, service_role;
