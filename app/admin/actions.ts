@@ -96,3 +96,34 @@ export const grantCreditsAction = async (formData: FormData) => {
   revalidatePath("/admin");
   redirect("/admin");
 };
+
+export const updateRequestStatusAction = async (formData: FormData) => {
+  if (!hasAdminAccess()) {
+    redirect("/admin");
+  }
+
+  const requestId = String(formData.get("requestId") ?? "");
+  const status = String(formData.get("status") ?? "");
+
+  if (!requestId || !["accepted", "rejected", "expired", "refunded"].includes(status)) {
+    redirect("/admin?error=invalid-request-status");
+  }
+
+  const admin = createAdminSupabaseClient();
+  const meme = admin.schema("meme");
+
+  const { error } = await meme
+    .from("conversation_requests")
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", requestId);
+
+  if (error) {
+    throw error;
+  }
+
+  revalidatePath("/admin");
+  redirect("/admin");
+};

@@ -36,6 +36,15 @@ type CreditLedgerRow = {
   created_at: string;
 };
 
+type PostReportRow = {
+  id: string;
+  post_id: string;
+  reporter_user_id: string;
+  reason: string;
+  details: string;
+  created_at: string;
+};
+
 export type AdminDashboardData = {
   summary: {
     memberCount: number;
@@ -83,13 +92,25 @@ export type AdminDashboardData = {
     balanceAfter: number;
     reason: string;
   }>;
+  reports: Array<{
+    id: string;
+    createdAt: string;
+    reason: string;
+    details: string;
+    postId: string;
+    reporter: {
+      userId: string;
+      handle: string;
+      displayName: string;
+    } | null;
+  }>;
 };
 
 export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
   const admin = createAdminSupabaseClient();
   const meme = admin.schema("meme");
 
-  const [profilesResult, walletsResult, requestsResult, ledgerResult, conversationsResult] =
+  const [profilesResult, walletsResult, requestsResult, ledgerResult, conversationsResult, reportsResult] =
     await Promise.all([
       meme
         .from("profiles")
@@ -112,6 +133,11 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
       meme
         .from("conversations")
         .select("id", { count: "exact", head: true }),
+      meme
+        .from("post_reports")
+        .select("id, post_id, reporter_user_id, reason, details, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
   if (profilesResult.error) throw profilesResult.error;
@@ -119,11 +145,13 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
   if (requestsResult.error) throw requestsResult.error;
   if (ledgerResult.error) throw ledgerResult.error;
   if (conversationsResult.error) throw conversationsResult.error;
+  if (reportsResult.error) throw reportsResult.error;
 
   const profiles = (profilesResult.data ?? []) as AdminProfileRow[];
   const wallets = (walletsResult.data ?? []) as CreditWalletRow[];
   const requests = (requestsResult.data ?? []) as ConversationRequestRow[];
   const ledger = (ledgerResult.data ?? []) as CreditLedgerRow[];
+  const reports = (reportsResult.data ?? []) as PostReportRow[];
 
   const profileMap = new Map(
     profiles.map((profile) => [profile.user_id, profile]),
@@ -187,6 +215,20 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
       delta: Number(entry.delta),
       balanceAfter: Number(entry.balance_after),
       reason: entry.reason,
+    })),
+    reports: reports.map((report) => ({
+      id: report.id,
+      createdAt: report.created_at,
+      reason: report.reason,
+      details: report.details,
+      postId: report.post_id,
+      reporter: profileMap.get(report.reporter_user_id)
+        ? {
+            userId: report.reporter_user_id,
+            handle: profileMap.get(report.reporter_user_id)!.handle,
+            displayName: profileMap.get(report.reporter_user_id)!.display_name,
+          }
+        : null,
     })),
   };
 };

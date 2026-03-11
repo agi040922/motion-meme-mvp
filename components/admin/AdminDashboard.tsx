@@ -1,4 +1,8 @@
-import { lockAdminAction, grantCreditsAction } from "@/app/admin/actions";
+import {
+  lockAdminAction,
+  grantCreditsAction,
+  updateRequestStatusAction,
+} from "@/app/admin/actions";
 import type { AdminDashboardData } from "@/features/admin/server";
 
 export function AdminDashboard({ data }: { data: AdminDashboardData }) {
@@ -133,6 +137,20 @@ export function AdminDashboard({ data }: { data: AdminDashboardData }) {
                       <p className="mt-2 text-xs text-zinc-500">
                         {request.creditsSpent} credits · {request.theme}
                       </p>
+                      <form action={updateRequestStatusAction} className="mt-3 flex flex-wrap gap-2">
+                        <input type="hidden" name="requestId" value={request.id} />
+                        {["accepted", "rejected", "expired", "refunded"].map((status) => (
+                          <button
+                            key={status}
+                            type="submit"
+                            name="status"
+                            value={status}
+                            className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 transition-colors hover:bg-zinc-100"
+                          >
+                            {status}
+                          </button>
+                        ))}
+                      </form>
                     </div>
                   ))
                 ) : (
@@ -166,6 +184,34 @@ export function AdminDashboard({ data }: { data: AdminDashboardData }) {
                   ))
                 ) : (
                   <p className="text-sm text-zinc-500">No credit ledger rows yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[32px] border border-zinc-200 bg-white p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                Reported posts
+              </p>
+              <div className="mt-4 space-y-3">
+                {data.reports.length > 0 ? (
+                  data.reports.map((report) => (
+                    <div key={report.id} className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold uppercase text-zinc-900">{report.reason}</p>
+                        <span className="text-xs text-zinc-500">post {report.postId.slice(0, 8)}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-zinc-500">
+                        Reporter: {report.reporter?.displayName ?? "Unknown"} (@{report.reporter?.handle ?? "unknown"})
+                      </p>
+                      {report.details ? (
+                        <p className="mt-2 text-sm leading-6 text-zinc-600">{report.details}</p>
+                      ) : (
+                        <p className="mt-2 text-sm text-zinc-400">No extra details.</p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-zinc-500">No reports yet.</p>
                 )}
               </div>
             </div>
