@@ -18,12 +18,11 @@ import { ComposeModal } from '../feed/ComposeModal';
 
 interface LeftRailProps {
   currentUser?: SocialIdentity | null;
-  initialComposeOpen?: boolean;
 }
 
-export function LeftRail({ currentUser, initialComposeOpen = false }: LeftRailProps) {
+export function LeftRail({ currentUser }: LeftRailProps) {
   const pathname = usePathname();
-  const [isComposeOpen, setIsComposeOpen] = useState(initialComposeOpen);
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
 
   const menuItems = [
     { href: '/feed', label: 'Home', icon: HomeIcon },
@@ -74,18 +73,18 @@ export function LeftRail({ currentUser, initialComposeOpen = false }: LeftRailPr
         </div>
 
         {/* Navigation Items */}
-        <div className="flex w-full justify-around p-3 pb-safe md:flex-col md:justify-start md:p-4 md:space-y-2">
+        <div className="flex w-full items-end justify-around px-3 py-2 pb-safe md:flex-col md:items-stretch md:justify-start md:p-4 md:space-y-2">
           {menuItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
             const Icon = item.icon;
-            
+
             return (
-              <Link 
-                key={item.label} 
+              <Link
+                key={item.label}
                 href={item.href}
-                className={`flex items-center gap-4 group p-3 md:px-6 md:py-4 rounded-full transition-colors ${
-                  isActive 
-                    ? 'font-bold text-black' 
+                className={`flex items-center justify-center gap-4 group min-h-[44px] min-w-[44px] p-2 md:justify-start md:px-6 md:py-4 rounded-full transition-colors ${
+                  isActive
+                    ? 'font-bold text-black'
                     : 'text-zinc-500 hover:text-black hover:bg-zinc-100'
                 }`}
               >
@@ -95,8 +94,8 @@ export function LeftRail({ currentUser, initialComposeOpen = false }: LeftRailPr
             )
           })}
 
-          {/* Settings - Mobile Only (Visible via Profile on Desktop typically) */}
-          <Link href={settingsHref} className="flex items-center gap-4 group p-3 md:hidden rounded-full text-zinc-500">
+          {/* Settings - Mobile Only */}
+          <Link href={settingsHref} className="flex items-center justify-center group min-h-[44px] min-w-[44px] p-2 md:hidden rounded-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors">
             <SettingsIcon className="w-6 h-6" />
           </Link>
         </div>

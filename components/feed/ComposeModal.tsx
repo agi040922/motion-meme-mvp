@@ -8,6 +8,7 @@ import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import type { SocialIdentity } from '@/components/layout/socialUi';
 import { VideoIcon, ImageIcon, TypeIcon } from '../ui/icons';
+import { Spinner, SpinnerOverlay } from '../ui/Spinner';
 import { createPost } from '@/features/meme/browser';
 import type { MediaType } from '@/features/meme/types';
 import { useBrowserCapabilities } from '@/lib/browserCapabilities';
@@ -187,7 +188,13 @@ export function ComposeModal({
   
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create Post">
-      <div ref={composeRootRef} className="p-4 flex gap-4">
+      <div ref={composeRootRef} className="relative p-4 flex gap-4 overflow-y-auto max-h-[70vh]">
+        {isBusy ? (
+          <SpinnerOverlay
+            message="Uploading post"
+            description="Sending your content to the feed..."
+          />
+        ) : null}
         <Avatar
           src={currentUser?.avatarUrl ?? undefined}
           alt={currentUser?.handle}
@@ -348,7 +355,12 @@ export function ComposeModal({
                 disabled={!canPost}
                 onClick={handlePost}
               >
-                {isBusy ? 'Posting...' : 'Post'}
+                {isBusy ? (
+                  <>
+                    <Spinner size="sm" className="mr-2" />
+                    Posting...
+                  </>
+                ) : 'Post'}
               </Button>
             </div>
           </div>

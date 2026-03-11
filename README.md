@@ -67,6 +67,10 @@ Motion Meme는 짧은 카메라 챌린지 한 번으로 자기소개, 콘텐츠 
 
 ![Slide 06](docs/readme-assets/instagram/slide_06.png)
 
+### 의도 기반 DM과 크레딧 구조
+
+![Slide 07](docs/readme-assets/instagram/slide_07.png)
+
 ### 소개팅 / 광고 제안 intent
 
 ![Slide 08](docs/readme-assets/instagram/slide_08.png)

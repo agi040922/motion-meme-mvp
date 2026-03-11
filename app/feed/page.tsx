@@ -24,7 +24,7 @@ const SORT_OPTIONS: Array<{ id: FeedViewSort; label: string }> = [
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams?: { sort?: string; compose?: string };
+  searchParams?: { sort?: string };
 }) {
   const viewerProfile = await getViewerProfileSummary();
   const currentUser = viewerProfile ? adaptDomainProfile(viewerProfile) : null;
@@ -35,10 +35,7 @@ export default async function FeedPage({
   );
 
   return (
-    <MainLayout
-      currentUser={currentUser}
-      initialComposeOpen={searchParams?.compose === "true"}
-    >
+    <MainLayout currentUser={currentUser}>
       <div className="flex flex-col w-full h-full">
         {/* Sticky Top Header */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-zinc-100 px-4 py-3 flex items-center justify-between">
@@ -48,13 +45,31 @@ export default async function FeedPage({
               Latest keeps the timeline fresh. Hot weighs reactions and recency together.
             </p>
           </div>
-          <Link
-            href={currentUser ? `/feed?sort=${sortMode}&compose=true` : "/auth/login?next=/feed"}
-            className="whitespace-nowrap rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
-          >
-            {currentUser ? "Compose" : "Sign in"}
-          </Link>
+          {!currentUser && (
+            <Link
+              href="/auth/login?next=/feed"
+              className="whitespace-nowrap rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+            >
+              Sign in
+            </Link>
+          )}
         </header>
+
+        {/* Mobile Play CTA - lg 이상에서는 오른쪽 패널에 있으므로 숨김 */}
+        <div className="lg:hidden border-b border-zinc-100 px-4 py-3">
+          <Link
+            href={currentUser ? "/play" : "/auth/login?next=/play"}
+            className="flex items-center justify-between rounded-2xl bg-zinc-900 px-5 py-4 text-white transition-colors hover:bg-zinc-800"
+          >
+            <div>
+              <p className="text-sm font-bold">Ready to move?</p>
+              <p className="mt-0.5 text-xs text-zinc-400">Turn on your camera and conquer the stages</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-bold text-zinc-900">
+              Start
+            </span>
+          </Link>
+        </div>
 
         <div className="border-b border-zinc-100 px-4 py-4">
           <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">

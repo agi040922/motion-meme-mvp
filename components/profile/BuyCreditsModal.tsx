@@ -2,6 +2,7 @@
 
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { Spinner } from '@/components/ui/Spinner';
 import { CREDIT_PACKAGES, purchaseMockCredits, useCreditBalance } from '@/lib/credits';
 import { useState } from 'react';
 
@@ -22,7 +23,7 @@ export function BuyCreditsModal({ isOpen, onClose }: BuyCreditsModalProps) {
             Current balance
           </p>
           <p className="mt-2 text-3xl font-black tracking-tight text-zinc-900">
-            {isLoading ? '...' : balance}
+            {isLoading ? <Spinner size="sm" /> : balance}
           </p>
         </div>
 
@@ -53,7 +54,12 @@ export function BuyCreditsModal({ isOpen, onClose }: BuyCreditsModalProps) {
                     }
                   }}
                 >
-                  {isPendingId === pkg.id ? 'Adding...' : 'Add credits'}
+                  {isPendingId === pkg.id ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Adding...
+                    </>
+                  ) : 'Add credits'}
                 </Button>
               </div>
             </div>

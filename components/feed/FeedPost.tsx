@@ -69,16 +69,17 @@ export function FeedPost({ post, currentUser }: FeedPostProps) {
   const postBody = duetMatch ? body.replace(DUET_TAG_PATTERN, '') : body;
 
   const handleLike = () => {
-    startTransition(async () => {
-      const nextLiked = !isLiked;
-      setIsLiked(nextLiked);
-      setLikeCount((current) => current + (nextLiked ? 1 : -1));
+    // 낙관적 업데이트: startTransition 바깥에서 즉시 UI 반영
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    setLikeCount((current) => current + (nextLiked ? 1 : -1));
 
+    startTransition(async () => {
       try {
         const actualLiked = await togglePostLike(post.id, isLiked);
         setIsLiked(actualLiked);
-        router.refresh();
       } catch {
+        // 실패 시 원래 상태로 복구
         setIsLiked(post.viewerState.liked);
         setLikeCount(post.counts.likes);
       }

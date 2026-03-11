@@ -8,16 +8,14 @@ import type { SocialIdentity } from '@/components/layout/socialUi';
 export function MainLayout({
   children,
   currentUser,
-  initialComposeOpen = false,
 }: {
   children: React.ReactNode;
   currentUser?: SocialIdentity | null;
-  initialComposeOpen?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-zinc-50 flex w-full">
       {/* Navigation (Fixed Left Rail) */}
-      <LeftRail currentUser={currentUser} initialComposeOpen={initialComposeOpen} />
+      <LeftRail currentUser={currentUser} />
 
       {/* Main Content Area */}
       <main className="flex-1 w-full md:pl-[280px] flex justify-center pb-20 md:pb-0">

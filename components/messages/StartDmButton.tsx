@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import {
   ensureDirectConversation,
   getExistingDirectConversation,
@@ -115,7 +116,12 @@ export function StartDmButton({
           });
         }}
       >
-        {isPending ? "Opening..." : label}
+        {isPending ? (
+          <>
+            <Spinner size="sm" className="mr-2" />
+            Opening...
+          </>
+        ) : label}
       </Button>
       {errorMessage ? (
         <p className="max-w-[240px] text-right text-xs text-red-500">{errorMessage}</p>
@@ -129,7 +135,7 @@ export function StartDmButton({
               </p>
               <div className="mt-2 flex items-center justify-between gap-3">
               <p className="text-3xl font-black tracking-tight text-zinc-900">
-                {isLoading ? '...' : balance}
+                {isLoading ? <Spinner size="sm" /> : balance}
               </p>
               <Button
                 type="button"

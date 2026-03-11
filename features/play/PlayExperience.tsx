@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import { StartDmButton } from "@/components/messages/StartDmButton";
 import { Button } from "@/components/ui/Button";
+import { SpinnerOverlay } from "@/components/ui/Spinner";
 import { createPlaySession, publishPlaySession } from "@/features/meme/browser";
 import type {
   PlayDashboardData,
@@ -1496,17 +1497,10 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                         </>
                       ) : null}
                       {isPublishing ? (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/72 backdrop-blur-sm">
-                          <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-zinc-900/90 px-8 py-7 text-center shadow-2xl">
-                            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-[#b8ff41]" />
-                            <div>
-                              <p className="text-base font-bold text-white">Uploading duet clip</p>
-                              <p className="mt-1 text-sm text-zinc-400">
-                                Sending video, creating the post, and returning to the feed.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                        <SpinnerOverlay
+                          message="Uploading duet clip"
+                          description="Sending video, creating the post, and returning to the feed."
+                        />
                       ) : null}
                       {(phase === "idle" || phase === "preparing") && selectedPoseGuide && !duetReferenceClip && (
                         <div

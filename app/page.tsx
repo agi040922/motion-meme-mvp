@@ -2,6 +2,7 @@ import MouseScroll from "@/components/MouseScroll";
 import { LandingFeedPreview } from "@/features/landing/LandingFeedPreview";
 import { getViewerProfileSummary, listFeedPosts } from "@/features/meme/server";
 import { Header } from "@/components/ui/header-2";
+import FooterSection from "@/components/ui/footer";
 
 export const metadata = {
   title: "Motion Meme | Camera Challenges Meet Social Feed",
@@ -28,6 +29,7 @@ export default async function LandingPage() {
         ctaLabel="Start with Google"
         posts={previewPosts}
       />
+      <FooterSection />
     </main>
   );
 }
