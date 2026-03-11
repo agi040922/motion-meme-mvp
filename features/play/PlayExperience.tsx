@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import { StartDmButton } from "@/components/messages/StartDmButton";
 import { Button } from "@/components/ui/Button";
@@ -292,6 +293,7 @@ const drawVideoPanel = ({
 };
 
 export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
+  const router = useRouter();
   const [selectedStageId, setSelectedStageId] = useState(
     initialData.referenceClip?.stageId ?? getInitialStage(initialData.stages, initialData.progressByStageId)?.id ?? "",
   );
@@ -1169,7 +1171,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
         score: bestAttemptRef.current.score || score,
       });
 
-      setStatus("Uploaded to the public feed.");
+      setStatus("Uploaded to the public feed. Heading back to the feed...");
       setProfileSnapshot((current) => ({
         ...current,
         uploadedPlayCount: current.uploadedPlayCount + 1,
@@ -1184,6 +1186,11 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
             : session,
         ),
       );
+
+      window.setTimeout(() => {
+        router.push("/feed?sort=latest");
+        router.refresh();
+      }, 900);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Publishing failed.",
@@ -1488,6 +1495,19 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                           />
                         </>
                       ) : null}
+                      {isPublishing ? (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/72 backdrop-blur-sm">
+                          <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-zinc-900/90 px-8 py-7 text-center shadow-2xl">
+                            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-[#b8ff41]" />
+                            <div>
+                              <p className="text-base font-bold text-white">Uploading duet clip</p>
+                              <p className="mt-1 text-sm text-zinc-400">
+                                Sending video, creating the post, and returning to the feed.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                       {(phase === "idle" || phase === "preparing") && selectedPoseGuide && (
                         <div
                           className={`pointer-events-none absolute inset-0 flex ${
@@ -1691,7 +1711,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                           <StartDmButton
                             targetUserId={duetReferenceClip.authorUserId}
                             targetHandle={duetReferenceClip.authorHandle}
-                            label="DM 보내보실래요?"
+                            label="Send a DM"
                             variant="primary"
                             size="sm"
                             className="rounded-full px-4"
