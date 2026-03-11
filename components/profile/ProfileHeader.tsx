@@ -114,26 +114,26 @@ export function ProfileHeader({
       <p className="text-zinc-800 mb-4 whitespace-pre-wrap">{user.bio}</p>
 
       {/* Stats row */}
-      <div className="flex gap-6 text-sm mb-6">
+      <div className="mb-6 flex flex-wrap items-center gap-6 text-sm">
         {isCurrentUser ? (
           <button
             type="button"
             onClick={() => setIsBuyCreditsOpen(true)}
-            className="flex gap-1.5 rounded-full px-2 py-1 text-left transition-colors hover:bg-zinc-100"
+            className="inline-flex items-center gap-1.5 text-left transition-colors hover:text-zinc-900"
           >
             <span className="font-bold text-zinc-900">{isLoading ? '...' : balance}</span>
             <span className="text-zinc-500">Credits</span>
           </button>
         ) : null}
-        <div className="flex gap-1.5">
+        <div className="inline-flex items-center gap-1.5">
           <span className="font-bold text-zinc-900">{user.stats.following}</span>
           <span className="text-zinc-500">Following</span>
         </div>
-        <div className="flex gap-1.5">
+        <div className="inline-flex items-center gap-1.5">
           <span className="font-bold text-zinc-900">{user.stats.followers}</span>
           <span className="text-zinc-500">Followers</span>
         </div>
-        <div className="flex gap-1.5">
+        <div className="inline-flex items-center gap-1.5">
           <span className="font-bold text-zinc-900">{user.stats.totalPlays}</span>
           <span className="text-zinc-500">Plays</span>
         </div>
