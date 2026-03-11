@@ -598,7 +598,7 @@ export function FeedPost({ post }: FeedPostProps) {
             </div>
           )}
 
-          {post.kind === 'stage_result' && isVideo ? (
+          {post.kind === 'stage_result' && isVideo && !post.author.relationship.isCurrentUser ? (
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Link
                 href={`/play?reference=${post.id}`}

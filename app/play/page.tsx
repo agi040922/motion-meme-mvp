@@ -25,5 +25,8 @@ export default async function PlayPage({
     redirect("/auth/login?next=/play");
   }
 
-  return <PlayExperience initialData={{ ...dashboard, referenceClip }} />;
+  const resolvedReferenceClip =
+    referenceClip && referenceClip.authorUserId !== user.id ? referenceClip : null;
+
+  return <PlayExperience initialData={{ ...dashboard, referenceClip: resolvedReferenceClip }} />;
 }
