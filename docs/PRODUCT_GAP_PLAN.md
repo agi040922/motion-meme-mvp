@@ -198,6 +198,13 @@
   - 주간 요약
 - 상세 기준은 `docs/EMAIL_NOTIFICATION_PLAN.md`를 따른다.
 
+### matchmaking / credit / admin
+
+- intent 기반 special DM
+- credit 차감형 소개팅 / 광고 제안
+- 운영자 회원 관리 / 요청 관리 / 크레딧 관리 대시보드
+- 상세 방향은 `docs/MATCHMAKING_CREDIT_DIRECTION.md`를 따른다.
+
 ## 작업 메모
 
 - `/play`는 사용자와 함께 보며 수정 중이므로, 플레이 본체를 건드릴 때는 시각/UX 변경 의도를 명확히 구분해 진행해야 한다.

@@ -55,8 +55,10 @@
   - feed `popular` 정렬을 반응 수 + 최근성 가중치로 보강
 - 랜딩 보강
   - 로그인 CTA와 공개 feed preview 섹션 추가
- - 이메일 계획 정리
-   - `docs/EMAIL_NOTIFICATION_PLAN.md` 추가
+- 이메일 계획 정리
+  - `docs/EMAIL_NOTIFICATION_PLAN.md` 추가
+- 매칭/크레딧/어드민 진행 방향 문서 추가
+  - `docs/MATCHMAKING_CREDIT_DIRECTION.md`
 
 ### 진행 중
 
