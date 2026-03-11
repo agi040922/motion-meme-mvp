@@ -9,6 +9,15 @@ export type StageRuleConfig = {
   weights: Record<string, number>;
 };
 
+export type StageMemeAsset = {
+  id: string;
+  title: string;
+  assetType: string;
+  publicUrl: string | null;
+  accent: string | null;
+  successSticker: string | null;
+};
+
 export type StageRecord = {
   id: string;
   stageNumber: number;
@@ -19,6 +28,7 @@ export type StageRecord = {
   timeLimitSeconds: number;
   minScoreToClear: number;
   successMemeAssetId: string | null;
+  memeAsset: StageMemeAsset | null;
   ruleConfig: StageRuleConfig;
   isActive: boolean;
 };

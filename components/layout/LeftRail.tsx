@@ -58,7 +58,7 @@ export function LeftRail({ currentUser, initialComposeOpen = false }: LeftRailPr
       <nav className="fixed bottom-0 left-0 z-40 w-full border-t border-zinc-200 bg-white/80 backdrop-blur-md md:left-0 md:top-0 md:h-screen md:w-[280px] md:border-r md:border-t-0 md:bg-transparent md:backdrop-blur-none flex flex-col">
         {/* Desktop Logo Area */}
         <div className="hidden md:flex items-center px-8 py-8 mb-4">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/feed" className="flex items-center gap-3">
             <div className="relative w-8 h-8 overflow-hidden">
               <Image
                 src="/favicon-32x32.png"

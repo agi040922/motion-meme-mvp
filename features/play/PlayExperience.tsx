@@ -23,7 +23,6 @@ import {
 import { getPoseGuide } from "@/features/play/poseGuides";
 import { scorePose } from "@/features/play/scoring";
 import { getResultTier } from "@/features/play/scoring";
-import { getStageSuccessMeme } from "@/features/play/successMemes";
 
 type PlayExperienceProps = {
   initialData: PlayDashboardData;
@@ -242,6 +241,43 @@ const drawDuetSuccessOverlay = ({
   ctx.fillText(`${score} pts · keep both sides in frame`, width / 2 - 146, 78);
 };
 
+const getVideoDrawRect = ({
+  containerHeight,
+  containerWidth,
+  video,
+  x,
+  y,
+}: {
+  x: number;
+  y: number;
+  containerWidth: number;
+  containerHeight: number;
+  video: HTMLVideoElement | null;
+}) => {
+  if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) {
+    return {
+      drawX: x,
+      drawY: y,
+      drawWidth: containerWidth,
+      drawHeight: containerHeight,
+    };
+  }
+
+  const scale = Math.min(
+    containerWidth / video.videoWidth,
+    containerHeight / video.videoHeight,
+  );
+  const drawWidth = video.videoWidth * scale;
+  const drawHeight = video.videoHeight * scale;
+
+  return {
+    drawX: x + (containerWidth - drawWidth) / 2,
+    drawY: y + (containerHeight - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  };
+};
+
 const drawVideoPanel = ({
   ctx,
   height,
@@ -268,11 +304,13 @@ const drawVideoPanel = ({
   ctx.strokeRect(x, y, width, height);
 
   if (video && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-    const scale = Math.min(width / video.videoWidth, height / video.videoHeight);
-    const drawWidth = video.videoWidth * scale;
-    const drawHeight = video.videoHeight * scale;
-    const drawX = x + (width - drawWidth) / 2;
-    const drawY = y + (height - drawHeight) / 2;
+    const { drawX, drawY, drawWidth, drawHeight } = getVideoDrawRect({
+      x,
+      y,
+      containerWidth: width,
+      containerHeight: height,
+      video,
+    });
 
     ctx.save();
     if (mirrored) {
@@ -324,6 +362,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
     uploadedPlayCount: initialData.profile.uploadedPlayCount,
   });
 
+  const ladderScrollRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const referenceVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -363,10 +402,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
     () => initialData.stages.find((stage) => stage.id === selectedStageId) ?? null,
     [initialData.stages, selectedStageId],
   );
-  const selectedSuccessMeme = useMemo(
-    () => getStageSuccessMeme(selectedStage?.slug),
-    [selectedStage?.slug],
-  );
+  const selectedStageMeme = selectedStage?.memeAsset ?? null;
   const selectedPoseGuide = useMemo(
     () => (selectedStage ? getPoseGuide(selectedStage.ruleConfig) : null),
     [selectedStage],
@@ -421,20 +457,20 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
 
   useEffect(() => {
     celebrationImageRef.current = null;
-    if (!selectedSuccessMeme) {
+    if (!selectedStageMeme?.publicUrl) {
       return;
     }
 
     const image = new Image();
     image.decoding = "async";
-    image.src = selectedSuccessMeme.imagePath;
+    image.src = selectedStageMeme.publicUrl;
     image.onload = () => {
       celebrationImageRef.current = image;
     };
     image.onerror = () => {
       celebrationImageRef.current = null;
     };
-  }, [selectedSuccessMeme]);
+  }, [selectedStageMeme]);
 
   const stopRenderLoop = () => {
     if (animationFrameRef.current) {
@@ -577,8 +613,8 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
 
     const celebrationSnapshot = resolveAttemptSnapshot(snapshot);
     setStatus(
-      selectedSuccessMeme
-        ? `${selectedSuccessMeme.name} landed. Hold the moment.`
+      selectedStageMeme
+        ? `${selectedStageMeme.title} landed. Hold the moment.`
         : "Clear locked. Hold the moment.",
     );
 
@@ -601,7 +637,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
           width: outputCanvas.width,
           height: outputCanvas.height,
           score: celebrationSnapshot.score,
-          memeAccent: selectedSuccessMeme?.accent ?? "#b8ff41",
+          memeAccent: selectedStageMeme?.accent ?? "#b8ff41",
         });
       } else {
         drawSuccessOverlay({
@@ -610,9 +646,9 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
           height: outputCanvas.height,
           score: celebrationSnapshot.score,
           stageTitle: `Stage ${selectedStage.stageNumber} · ${selectedStage.title}`,
-          memeName: selectedSuccessMeme?.name ?? "Victory Meme",
-          memeSticker: selectedSuccessMeme?.sticker ?? "CLEAR",
-          memeAccent: selectedSuccessMeme?.accent ?? "#b8ff41",
+          memeName: selectedStageMeme?.title ?? "Victory Meme",
+          memeSticker: selectedStageMeme?.successSticker ?? "CLEAR",
+          memeAccent: selectedStageMeme?.accent ?? "#b8ff41",
           memeImage: celebrationImageRef.current,
           progress: Math.min(1, (performance.now() - startedAt) / SUCCESS_CELEBRATION_MS),
         });
@@ -1045,10 +1081,19 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
 
         if (pose) {
           ctx.fillStyle = "#b8ff41";
-          const cameraOffsetX = isDuetMode ? outputCanvas.width / 2 + 9 : 0;
-          const cameraFrameWidth = isDuetMode ? outputCanvas.width / 2 - 27 : outputCanvas.width;
-          const cameraFrameHeight = isDuetMode ? outputCanvas.height - 36 : outputCanvas.height;
-          const cameraOffsetY = isDuetMode ? 18 : 0;
+          const duetCameraRect = isDuetMode
+            ? getVideoDrawRect({
+                x: outputCanvas.width / 2 + 9,
+                y: 18,
+                containerWidth: outputCanvas.width / 2 - 27,
+                containerHeight: outputCanvas.height - 36,
+                video: videoRef.current,
+              })
+            : null;
+          const cameraOffsetX = duetCameraRect?.drawX ?? 0;
+          const cameraFrameWidth = duetCameraRect?.drawWidth ?? outputCanvas.width;
+          const cameraFrameHeight = duetCameraRect?.drawHeight ?? outputCanvas.height;
+          const cameraOffsetY = duetCameraRect?.drawY ?? 0;
 
           for (const point of pose) {
             const x = cameraOffsetX + cameraFrameWidth - point.x * cameraFrameWidth;
@@ -1083,7 +1128,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
         }, 1000);
       };
 
-      if (selectedPoseGuide) {
+      if (selectedPoseGuide && !isDuetMode) {
         setPhase("guiding");
         setStatus(`Watch ${selectedPoseGuide.label}, then copy it.`);
 
@@ -1202,156 +1247,74 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto flex max-w-[1320px] flex-col gap-6 px-4 py-6 lg:flex-row">
-        {/* ── LEFT SIDEBAR: Stage Ladder ── */}
-        <aside className="w-full rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:sticky lg:top-6 lg:h-fit lg:w-[340px]">
+      <div className="mx-auto max-w-[1320px] px-2 py-2">
+        {/* ── Top Bar ── */}
+        <div className="mb-2 flex items-center justify-between">
           <Link
             href="/feed"
-            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+            className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900"
           >
             <span aria-hidden="true">←</span>
             Back to Feed
           </Link>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Stage Ladder
-          </p>
-          <h1 className="mt-2 text-2xl font-black tracking-tight text-zinc-900">
-            Sequential Unlock
-          </h1>
-          <p className="mt-1 text-sm leading-6 text-zinc-500">
-            Camera runs locally. Nothing is uploaded until you hit the upload button.
-          </p>
-
-          <div className="mt-5 space-y-2.5">
-            {initialData.stages.map((stage) => {
-              const progress = progressByStageId[stage.id];
-              const isUnlocked = Boolean(progress);
-              const isSelected = stage.id === selectedStageId;
-              const isPinnedDuetStage =
-                !initialData.referenceClip || initialData.referenceClip.stageId === stage.id;
-              const statusLabel = progress?.bestScore
-                ? `${progress.bestScore} pts`
-                : isUnlocked
-                  ? "Unlocked"
-                  : "Locked";
-
-              return (
-                <button
-                  key={stage.id}
-                  type="button"
-                  disabled={!isPinnedDuetStage || (!isUnlocked && !initialData.referenceClip)}
-                  onClick={() => setSelectedStageId(stage.id)}
-                  className={`relative w-full overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-all ${
-                    isSelected
-                      ? "border-zinc-900 bg-zinc-900 text-white shadow-lg shadow-zinc-900/10"
-                      : isUnlocked
-                        ? "border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-900"
-                        : "cursor-not-allowed border-zinc-100 bg-zinc-50 opacity-60"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-xs font-semibold uppercase tracking-[0.16em] ${
-                        isSelected ? "text-zinc-400" : isUnlocked ? "text-zinc-500" : "text-zinc-400"
-                      }`}
-                    >
-                      Stage {stage.stageNumber}
-                    </span>
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-                        progress?.bestScore
-                          ? isSelected
-                            ? "bg-[#b8ff41] text-black"
-                            : "bg-zinc-100 text-zinc-700"
-                          : isUnlocked
-                            ? isSelected
-                              ? "bg-white/15 text-white/80"
-                              : "bg-zinc-100 text-zinc-500"
-                            : "bg-zinc-100 text-zinc-400"
-                      }`}
-                    >
-                      {statusLabel}
-                    </span>
-                  </div>
-                  <p
-                    className={`mt-1.5 text-base font-bold tracking-tight ${
-                      isSelected ? "text-white" : "text-zinc-900"
-                    }`}
-                  >
-                    {stage.title}
-                  </p>
-                  <p
-                    className={`mt-0.5 text-sm leading-5 ${
-                      isSelected ? "text-zinc-400" : "text-zinc-500"
-                    }`}
-                  >
-                    {stage.description}
-                  </p>
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <span className="font-semibold text-zinc-900">{initialData.profile.displayName}</span>
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-bold text-zinc-600">
+              Best {profileSnapshot.bestScore}
+            </span>
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-bold text-zinc-600">
+              {profileSnapshot.totalPlayCount} plays
+            </span>
           </div>
+        </div>
 
-          {/* Profile Snapshot */}
-          <div className="mt-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Your Stats
-            </p>
-            <p className="mt-1.5 text-lg font-bold text-zinc-900">{initialData.profile.displayName}</p>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-white p-3 border border-zinc-100">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Best</p>
-                <p className="mt-1 text-xl font-black text-zinc-900">{profileSnapshot.bestScore}</p>
-              </div>
-              <div className="rounded-xl bg-white p-3 border border-zinc-100">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Plays</p>
-                <p className="mt-1 text-xl font-black text-zinc-900">{profileSnapshot.totalPlayCount}</p>
-              </div>
-              <div className="rounded-xl bg-white p-3 border border-zinc-100">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Uploads</p>
-                <p className="mt-1 text-xl font-black text-zinc-900">{profileSnapshot.uploadedPlayCount}</p>
-              </div>
-            </div>
-          </div>
-        </aside>
-
+        <div className="flex flex-col gap-2 lg:flex-row">
         {/* ── MAIN CONTENT: Challenge Area ── */}
-        <section className="flex-1 space-y-5">
+        <section className="min-w-0 flex-1 space-y-2">
           {selectedStage ? (
             <>
               {/* Stage Header */}
-              <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-sm lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                    Live Challenge
-                  </p>
-                  <h2 className="mt-1 text-3xl font-black tracking-tight text-zinc-900">
+                  <h2 className="text-sm font-black tracking-tight text-zinc-900">
                     Stage {selectedStage.stageNumber}: {selectedStage.title}
                   </h2>
-                  <p className="mt-1 max-w-2xl text-sm text-zinc-500">
+                  <p className="mt-0.5 text-[11px] text-zinc-500 line-clamp-1">
                     {selectedStage.instructionText}
                   </p>
-                  {selectedSuccessMeme ? (
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
-                      Success meme: {selectedSuccessMeme.name}
-                    </p>
+                  {selectedStageMeme?.publicUrl ? (
+                    <div className="mt-2 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+                      <img
+                        src={selectedStageMeme.publicUrl}
+                        alt={selectedStageMeme.title}
+                        className="h-10 w-10 rounded-lg object-cover"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                          Meme Target
+                        </p>
+                        <p className="truncate text-xs font-semibold text-zinc-900">
+                          {selectedStageMeme.title}
+                        </p>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
-                    <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   {duetReferenceClip ? (
-                    <div className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+                    <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                       Duet with @{duetReferenceClip.authorHandle}
                     </div>
                   ) : null}
-                  <div className="rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-600">
+                  <div className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-600">
                     ⏱ {formatTime(secondsLeft || selectedStage.timeLimitSeconds)}
                   </div>
-                  <div className="rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-600">
+                  <div className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-zinc-600">
                     🎯 {selectedStage.minScoreToClear}+
                   </div>
                   <Button
                     type="button"
-                    size="lg"
+                    size="sm"
                     onClick={startChallenge}
                     disabled={
                       phase === "preparing" ||
@@ -1359,7 +1322,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                       phase === "playing" ||
                       phase === "celebrating"
                     }
-                    className="rounded-full bg-black px-8 text-white hover:bg-zinc-800 disabled:opacity-50"
+                    className="rounded-full bg-black px-6 text-sm text-white hover:bg-zinc-800 disabled:opacity-50"
                   >
                     {phase === "playing"
                       ? "● Live"
@@ -1372,27 +1335,14 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                 </div>
               </div>
 
-              <div className="grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">
+              <div>
                 {/* Camera / Result viewport — stays dark for drama */}
-                <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-zinc-700/50 px-5 py-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                        {phase === "result"
-                          ? "Recorded result"
-                          : phase === "guiding"
-                            ? "Pose preview"
-                            : phase === "celebrating"
-                              ? "Clear moment"
-                              : "Camera output"}
-                      </p>
-                      <p className="mt-1 text-base font-bold text-white">{status}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">
-                        Similarity
-                      </p>
-                      <p className="mt-1 text-4xl font-black text-[#b8ff41]">{score}</p>
+                <div className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-900 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-zinc-700/50 px-3 py-1.5">
+                    <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-zinc-400">{status}</p>
+                    <div className="ml-2 flex items-center gap-1 text-right">
+                      <p className="text-[9px] uppercase tracking-wide text-zinc-500">Score</p>
+                      <p className="text-xl font-black text-[#b8ff41]">{score}</p>
                     </div>
                   </div>
                   <>
@@ -1419,18 +1369,18 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                       {duetReferenceClip &&
                       (phase === "idle" || phase === "preparing") &&
                       !selectedPreviewUrl ? (
-                        <div className="absolute inset-0 grid grid-cols-1 gap-4 bg-zinc-950/60 p-5 md:grid-cols-2">
-                          <div className="overflow-hidden rounded-2xl border border-zinc-700 bg-black">
-                            <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+                        <div className="absolute inset-0 grid grid-cols-1 gap-2 bg-zinc-950/60 p-3 md:grid-cols-2">
+                          <div className="overflow-hidden rounded-lg border border-zinc-700 bg-black">
+                            <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
                               <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
                                   Reference clip
                                 </p>
-                                <p className="mt-1 text-sm font-semibold text-white">
+                                <p className="mt-0.5 text-xs font-semibold text-white">
                                   @{duetReferenceClip.authorHandle}
                                 </p>
                               </div>
-                              <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-300">
+                              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300">
                                 Stage {duetReferenceClip.stageNumber}
                               </span>
                             </div>
@@ -1441,40 +1391,48 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                               playsInline
                               className="aspect-video w-full bg-black object-contain"
                             />
-                            <div className="px-4 py-3">
-                              <p className="text-sm font-semibold text-white">
+                            <div className="px-3 py-2">
+                              <p className="text-xs font-semibold text-white">
                                 {duetReferenceClip.stageTitle}
                               </p>
-                              <p className="mt-1 text-xs leading-5 text-zinc-400">
-                                Watch the uploaded run on the left, then start your camera to mirror the move on the right.
+                              <p className="mt-0.5 text-[11px] leading-4 text-zinc-400">
+                                Watch the reference, then start your camera to mirror the move.
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex flex-col justify-center rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/80 px-6 py-8 text-center">
-                            <div className="mx-auto inline-flex rounded-full bg-zinc-800 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                          <div className="flex flex-col justify-center rounded-lg border border-dashed border-zinc-700 bg-zinc-900/80 px-4 py-4 text-center">
+                            <div className="mx-auto inline-flex rounded-full bg-zinc-800 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
                               Your side
                             </div>
-                            <h3 className="mt-5 text-2xl font-black tracking-tight text-white">
+                            <h3 className="mt-3 text-lg font-black tracking-tight text-white">
                               Match the rhythm, then hit Start
                             </h3>
-                            <p className="mt-3 text-sm leading-6 text-zinc-400">
-                              The final upload will keep @{duetReferenceClip.authorHandle}&apos;s clip on the left and your camera run on the right.
+                            <p className="mt-2 text-xs leading-5 text-zinc-400">
+                              Upload keeps @{duetReferenceClip.authorHandle}&apos;s clip left, yours right.
                             </p>
-                            <div className="mt-5 grid gap-2.5 text-left">
-                              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3.5">
-                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 1</p>
-                                <p className="mt-1.5 text-sm font-semibold text-white">Watch the reference clip once</p>
+                            <div className="mt-3 flex gap-1.5 text-left">
+                              <div className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900/70 p-2">
+                                <p className="text-[9px] uppercase tracking-wide text-zinc-500">Step 1</p>
+                                <p className="mt-0.5 text-[11px] font-semibold text-white">Watch clip</p>
                               </div>
-                              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3.5">
-                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 2</p>
-                                <p className="mt-1.5 text-sm font-semibold text-white">Start the challenge and mirror the pose</p>
+                              <div className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900/70 p-2">
+                                <p className="text-[9px] uppercase tracking-wide text-zinc-500">Step 2</p>
+                                <p className="mt-0.5 text-[11px] font-semibold text-white">Mirror pose</p>
                               </div>
-                              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3.5">
-                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 3</p>
-                                <p className="mt-1.5 text-sm font-semibold text-white">Upload and DM if the vibe matches</p>
+                              <div className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900/70 p-2">
+                                <p className="text-[9px] uppercase tracking-wide text-zinc-500">Step 3</p>
+                                <p className="mt-0.5 text-[11px] font-semibold text-white">Upload & DM</p>
                               </div>
                             </div>
+                            <button
+                              type="button"
+                              onClick={startChallenge}
+                              disabled={phase === "preparing"}
+                              className="mt-4 w-full rounded-full bg-[#b8ff41] px-6 py-3 text-sm font-bold text-black transition hover:bg-[#a8ef31] disabled:opacity-50"
+                            >
+                              {phase === "preparing" ? "Preparing..." : "▶ Start Challenge"}
+                            </button>
                           </div>
                         </div>
                       ) : null}
@@ -1508,42 +1466,51 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                           </div>
                         </div>
                       ) : null}
-                      {(phase === "idle" || phase === "preparing") && selectedPoseGuide && (
+                      {(phase === "idle" || phase === "preparing") && selectedPoseGuide && !duetReferenceClip && (
                         <div
-                          className={`pointer-events-none absolute inset-0 flex ${
-                            duetReferenceClip ? "items-end justify-end p-5" : "items-center justify-center"
+                          className={`absolute inset-0 flex overflow-y-auto ${
+                            duetReferenceClip ? "items-end justify-end p-4" : "items-start justify-center p-4"
                           }`}
                         >
                           <div
-                            className={`flex flex-col items-center rounded-2xl border border-zinc-700/50 bg-zinc-800/90 px-8 py-8 text-center backdrop-blur ${
-                              duetReferenceClip ? "w-full max-w-[380px]" : "mx-6 w-full max-w-[520px]"
+                            className={`flex shrink-0 flex-col items-center rounded-2xl border border-zinc-700/50 bg-zinc-800/90 px-5 py-5 text-center backdrop-blur sm:px-8 sm:py-8 ${
+                              duetReferenceClip ? "w-full max-w-[380px]" : "w-full max-w-[480px]"
                             }`}
                           >
                             <div className="rounded-full bg-zinc-700/50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
                               Camera standby
                             </div>
-                            <h3 className="mt-5 text-2xl font-black tracking-tight text-white">
-                              {selectedPoseGuide.label}
+                            <h3 className="mt-3 text-xl font-black tracking-tight text-white sm:mt-5 sm:text-2xl">
+                              {selectedStage.title}
                             </h3>
-                            <p className="mt-3 max-w-md text-sm leading-6 text-zinc-400">
-                              {selectedPoseGuide.cue}
+                            <p className="mt-2 text-sm leading-6 text-zinc-400 sm:mt-3">
+                              {selectedStage.description}
                             </p>
-                            <div className={`mt-5 grid w-full gap-2.5 text-left ${duetReferenceClip ? "" : "md:grid-cols-3"}`}>
-                              <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3.5">
-                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 1</p>
-                                <p className="mt-1.5 text-sm font-semibold text-white">Watch the pose preview</p>
+                            {selectedStageMeme?.publicUrl ? (
+                              <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-700/50 bg-zinc-900/80">
+                                <img
+                                  src={selectedStageMeme.publicUrl}
+                                  alt={selectedStageMeme.title}
+                                  className="h-28 w-full object-cover sm:h-36"
+                                />
                               </div>
-                              <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3.5">
-                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 2</p>
-                                <p className="mt-1.5 text-sm font-semibold text-white">Match the body shape</p>
+                            ) : null}
+                            <div className="mt-3 flex w-full gap-2 text-left sm:mt-5">
+                              <div className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-2.5 sm:p-3.5">
+                                <p className="text-[10px] uppercase tracking-wide text-zinc-500 sm:text-[11px]">Step 1</p>
+                                <p className="mt-1 text-xs font-semibold text-white sm:text-sm">Watch preview</p>
                               </div>
-                              <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3.5">
-                                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 3</p>
-                                <p className="mt-1.5 text-sm font-semibold text-white">Hold past {selectedStage.minScoreToClear}</p>
+                              <div className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-2.5 sm:p-3.5">
+                                <p className="text-[10px] uppercase tracking-wide text-zinc-500 sm:text-[11px]">Step 2</p>
+                                <p className="mt-1 text-xs font-semibold text-white sm:text-sm">Match the pose</p>
+                              </div>
+                              <div className="flex-1 rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-2.5 sm:p-3.5">
+                                <p className="text-[10px] uppercase tracking-wide text-zinc-500 sm:text-[11px]">Step 3</p>
+                                <p className="mt-1 text-xs font-semibold text-white sm:text-sm">Hold {selectedStage.minScoreToClear}+</p>
                               </div>
                             </div>
-                            <div className="mt-5 rounded-[28px] border border-dashed border-zinc-600 bg-zinc-800/40 p-5">
-                              <svg viewBox="0 0 120 140" className="h-[160px] w-[140px] text-zinc-300" fill="none">
+                            <div className="mt-3 rounded-[28px] border border-dashed border-zinc-600 bg-zinc-800/40 p-3 sm:mt-5 sm:p-5">
+                              <svg viewBox="0 0 120 140" className="h-[100px] w-[86px] text-zinc-300 sm:h-[140px] sm:w-[120px]" fill="none">
                                 {GUIDE_CONNECTIONS.map(([fromKey, toKey]) => {
                                   const from = selectedPoseGuide.points[fromKey];
                                   const to = selectedPoseGuide.points[toKey];
@@ -1571,6 +1538,14 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                                 ))}
                               </svg>
                             </div>
+                            <button
+                              type="button"
+                              onClick={startChallenge}
+                              disabled={phase === "preparing"}
+                              className="mt-4 w-full rounded-full bg-[#b8ff41] px-6 py-3 text-sm font-bold text-black transition hover:bg-[#a8ef31] disabled:opacity-50 sm:mt-5"
+                            >
+                              {phase === "preparing" ? "Preparing..." : "▶ Start Challenge"}
+                            </button>
                           </div>
                         </div>
                       )}
@@ -1578,203 +1553,99 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                   </>
                 </div>
 
-                {/* Right Panel: Telemetry + Publish + Recent */}
-                <div className="space-y-4">
-                  {/* Attempt Telemetry */}
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                      Attempt Telemetry
-                    </p>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl bg-zinc-50 p-4 border border-zinc-100">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                          Tier
-                        </p>
-                        <p className="mt-1.5 text-3xl font-black uppercase text-zinc-900">
-                          {tier}
-                        </p>
-                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                          Final uses best score
-                        </p>
-                      </div>
-                      <div className="rounded-xl bg-zinc-50 p-4 border border-zinc-100">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                          Hold
-                        </p>
-                        <p className="mt-1.5 text-3xl font-black text-zinc-900">
-                          {holdPercent}%
-                        </p>
-                      </div>
-                    </div>
-                    {errorMessage ? (
-                      <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                        {errorMessage}
-                      </p>
-                    ) : null}
-                  </div>
+              </div>
 
-                  {/* Publish to Feed */}
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                      Publish to feed
-                    </p>
-                    {isDuetMode ? (
-                      <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                        <p className="text-sm font-semibold text-emerald-900">
-                          Split-screen duet
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-emerald-700">
-                          This upload keeps @{duetReferenceClip.authorHandle}&apos;s clip on the left and your run on the right.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-3 grid gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setUploadVariant("raw")}
-                          className={`rounded-xl border px-4 py-3 text-left transition ${
-                            uploadVariant === "raw"
-                              ? "border-zinc-900 bg-zinc-900 text-white"
-                              : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
-                          }`}
-                        >
-                          <p className="text-sm font-semibold">Clean face shot</p>
-                          <p
-                            className={`mt-1 text-xs ${
-                              uploadVariant === "raw" ? "text-zinc-300" : "text-zinc-500"
-                            }`}
-                          >
-                            Upload the original camera clip without pose points or judging UI.
-                          </p>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUploadVariant("overlay")}
-                          className={`rounded-xl border px-4 py-3 text-left transition ${
-                            uploadVariant === "overlay"
-                              ? "border-zinc-900 bg-zinc-900 text-white"
-                              : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
-                          }`}
-                        >
-                          <p className="text-sm font-semibold">Scored highlight</p>
-                          <p
-                            className={`mt-1 text-xs ${
-                              uploadVariant === "overlay" ? "text-zinc-300" : "text-zinc-500"
-                            }`}
-                          >
-                            Upload the version with score bar, pose dots, and clear celebration.
-                          </p>
-                        </button>
-                      </div>
-                    )}
-                    <textarea
-                      value={caption}
-                      onChange={(event) => setCaption(event.target.value)}
-                      placeholder="Write the caption that will go with your motion clip."
-                      className="mt-3 h-24 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-200 transition-all"
-                    />
-                    {duetReferenceClip ? (
-                      <p className="mt-2 text-xs text-zinc-500">
-                        The post will tag {duetCaptionPrefix} automatically.
-                      </p>
-                    ) : null}
-                    <div className="mt-3 flex gap-3">
-                      <Button
+              {/* ── Stage Ladder: Arrow Navigation ── */}
+              <div className="mt-2">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Stages
+                  </p>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      aria-label="Previous stages"
+                      onClick={() => ladderScrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-[10px] text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-900"
+                    >
+                      ◀
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next stages"
+                      onClick={() => ladderScrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-[10px] text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-900"
+                    >
+                      ▶
+                    </button>
+                  </div>
+                </div>
+                <div
+                  ref={ladderScrollRef}
+                  className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  {initialData.stages.map((stage) => {
+                    const progress = progressByStageId[stage.id];
+                    const isUnlocked = Boolean(progress);
+                    const isSelected = stage.id === selectedStageId;
+                    const isPinnedDuetStage =
+                      !initialData.referenceClip || initialData.referenceClip.stageId === stage.id;
+                    const statusLabel = progress?.bestScore
+                      ? `${progress.bestScore} pts`
+                      : isUnlocked
+                        ? "Unlocked"
+                        : "Locked";
+
+                    return (
+                      <button
+                        key={stage.id}
                         type="button"
-                        size="lg"
-                        className="flex-1 rounded-full bg-black text-white hover:bg-zinc-800 disabled:opacity-50"
-                        disabled={!canPublish}
-                        onClick={handlePublish}
+                        disabled={!isPinnedDuetStage || (!isUnlocked && !initialData.referenceClip)}
+                        onClick={() => setSelectedStageId(stage.id)}
+                        className={`shrink-0 rounded-lg border px-3 py-2 text-left transition-all ${
+                          isSelected
+                            ? "border-zinc-900 bg-zinc-900 text-white shadow-md shadow-zinc-900/10"
+                            : isUnlocked
+                              ? "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-900"
+                              : "cursor-not-allowed border-zinc-100 bg-zinc-50 opacity-60"
+                        }`}
+                        style={{ minWidth: "120px" }}
                       >
-                        {isPublishing
-                          ? "Uploading..."
-                          : phase !== "result"
-                            ? "Finish run to upload"
-                            : !isResultReady
-                              ? "Finalizing clip..."
-                              : "Upload to public feed"}
-                      </Button>
-                    </div>
-                    {duetReferenceClip &&
-                    duetReferenceClip.authorUserId !== initialData.profile.userId &&
-                    phase === "result" ? (
-                      <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-                        <p className="text-sm font-semibold text-zinc-900">
-                          {score >= selectedStage.minScoreToClear
-                            ? "You matched the vibe."
-                            : "Want to talk about the clip?"}
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-zinc-500">
-                          DM @{duetReferenceClip.authorHandle} right after the run.
-                        </p>
-                        <div className="mt-3">
-                          <StartDmButton
-                            targetUserId={duetReferenceClip.authorUserId}
-                            targetHandle={duetReferenceClip.authorHandle}
-                            label="Send a DM"
-                            variant="primary"
-                            size="sm"
-                            className="rounded-full px-4"
-                          />
+                        <div className="flex items-center justify-between gap-1">
+                          <span
+                            className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                              isSelected ? "text-zinc-400" : isUnlocked ? "text-zinc-500" : "text-zinc-400"
+                            }`}
+                          >
+                            Stage {stage.stageNumber}
+                          </span>
+                          <span
+                            className={`rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-wide ${
+                              progress?.bestScore
+                                ? isSelected
+                                  ? "bg-[#b8ff41] text-black"
+                                  : "bg-zinc-100 text-zinc-700"
+                                : isUnlocked
+                                  ? isSelected
+                                    ? "bg-white/15 text-white/80"
+                                    : "bg-zinc-100 text-zinc-500"
+                                  : "bg-zinc-100 text-zinc-400"
+                            }`}
+                          >
+                            {statusLabel}
+                          </span>
                         </div>
-                      </div>
-                    ) : null}
-                    <p className="mt-2.5 text-xs text-zinc-400">
-                      {phase !== "result"
-                        ? "The upload button unlocks after a recorded result is ready."
-                        : !isResultReady
-                          ? "The clip is still being prepared. Upload becomes active as soon as preview generation finishes."
-                          : effectiveUploadVariant === "raw"
-                            ? "The video stays local until this button is pressed. The upload will use the clean camera clip."
-                            : isDuetMode
-                              ? "The video stays local until this button is pressed. The upload will publish the split-screen duet clip."
-                              : "The video stays local until this button is pressed. The upload will use the judged highlight clip."}
-                    </p>
-                  </div>
-
-                  {/* Recent Attempts */}
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                      Recent Attempts
-                    </p>
-                    <div className="mt-3 space-y-2">
-                      {recentSessions.length === 0 ? (
-                        <p className="text-sm text-zinc-400">
-                          Your last eight attempts will appear here once you start.
+                        <p
+                          className={`mt-0.5 text-xs font-bold tracking-tight ${
+                            isSelected ? "text-white" : "text-zinc-900"
+                          }`}
+                        >
+                          {stage.title}
                         </p>
-                      ) : (
-                        recentSessions.map((session) => {
-                          const stage = initialData.stages.find(
-                            (candidate) => candidate.id === session.stageId,
-                          );
-
-                          return (
-                            <div
-                              key={session.id}
-                              className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3"
-                            >
-                              <div>
-                                <p className="font-semibold text-zinc-900">
-                                  {stage?.title ?? "Unknown stage"}
-                                </p>
-                                <p className="text-sm text-zinc-500" suppressHydrationWarning>
-                                  {new Date(session.attemptFinishedAt).toLocaleString('ko-KR')}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                                  {session.resultTier}
-                                </p>
-                                <p className="text-xl font-black text-zinc-900">
-                                  {session.score}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </>
@@ -1788,6 +1659,159 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
             </div>
           )}
         </section>
+
+        {/* ── RIGHT SIDEBAR: Telemetry + Publish ── */}
+        <aside className="w-full space-y-2 lg:w-[260px] lg:shrink-0">
+          {/* Attempt Telemetry */}
+          <div className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+              Telemetry
+            </p>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+              <div className="rounded-md bg-zinc-50 px-2.5 py-2 border border-zinc-100">
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-zinc-400">
+                  Tier
+                </p>
+                <p className="mt-0.5 text-lg font-black uppercase text-zinc-900">
+                  {tier}
+                </p>
+              </div>
+              <div className="rounded-md bg-zinc-50 px-2.5 py-2 border border-zinc-100">
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-zinc-400">
+                  Hold
+                </p>
+                <p className="mt-0.5 text-lg font-black text-zinc-900">
+                  {holdPercent}%
+                </p>
+              </div>
+            </div>
+            {errorMessage ? (
+              <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {errorMessage}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Publish to Feed */}
+          <div className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+              Publish
+            </p>
+            {isDuetMode ? (
+              <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <p className="text-sm font-semibold text-emerald-900">
+                  Split-screen duet
+                </p>
+                <p className="mt-1 text-xs leading-5 text-emerald-700">
+                  This upload keeps @{duetReferenceClip?.authorHandle}&apos;s clip on the left and your run on the right.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUploadVariant("raw")}
+                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                    uploadVariant === "raw"
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                  }`}
+                >
+                  <p className="text-sm font-semibold">Clean face shot</p>
+                  <p
+                    className={`mt-1 text-xs ${
+                      uploadVariant === "raw" ? "text-zinc-300" : "text-zinc-500"
+                    }`}
+                  >
+                    Upload the original camera clip without pose points or judging UI.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadVariant("overlay")}
+                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                    uploadVariant === "overlay"
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                  }`}
+                >
+                  <p className="text-sm font-semibold">Scored highlight</p>
+                  <p
+                    className={`mt-1 text-xs ${
+                      uploadVariant === "overlay" ? "text-zinc-300" : "text-zinc-500"
+                    }`}
+                  >
+                    Upload the version with score bar, pose dots, and clear celebration.
+                  </p>
+                </button>
+              </div>
+            )}
+            <textarea
+              value={caption}
+              onChange={(event) => setCaption(event.target.value)}
+              placeholder="Caption for your clip..."
+              className="mt-1.5 h-12 w-full rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[11px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-200 transition-all"
+            />
+            {duetReferenceClip ? (
+              <p className="mt-2 text-xs text-zinc-500">
+                The post will tag {duetCaptionPrefix} automatically.
+              </p>
+            ) : null}
+            <div className="mt-3 flex gap-3">
+              <Button
+                type="button"
+                size="lg"
+                className="flex-1 rounded-full bg-black text-white hover:bg-zinc-800 disabled:opacity-50"
+                disabled={!canPublish}
+                onClick={handlePublish}
+              >
+                {isPublishing
+                  ? "Uploading..."
+                  : phase !== "result"
+                    ? "Finish run to upload"
+                    : !isResultReady
+                      ? "Finalizing clip..."
+                      : "Upload to public feed"}
+              </Button>
+            </div>
+            {duetReferenceClip &&
+            duetReferenceClip.authorUserId !== initialData.profile.userId &&
+            phase === "result" ? (
+              <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+                <p className="text-sm font-semibold text-zinc-900">
+                  {selectedStage && score >= selectedStage.minScoreToClear
+                    ? "You matched the vibe."
+                    : "Want to talk about the clip?"}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-zinc-500">
+                  DM @{duetReferenceClip.authorHandle} right after the run.
+                </p>
+                <div className="mt-3">
+                  <StartDmButton
+                    targetUserId={duetReferenceClip.authorUserId}
+                    targetHandle={duetReferenceClip.authorHandle}
+                    label="Send a DM"
+                    variant="primary"
+                    size="sm"
+                    className="rounded-full px-4"
+                  />
+                </div>
+              </div>
+            ) : null}
+            <p className="mt-1.5 text-[10px] leading-4 text-zinc-400">
+              {phase !== "result"
+                ? "The upload button unlocks after a recorded result is ready."
+                : !isResultReady
+                  ? "The clip is still being prepared. Upload becomes active as soon as preview generation finishes."
+                  : effectiveUploadVariant === "raw"
+                    ? "The video stays local until this button is pressed. The upload will use the clean camera clip."
+                    : isDuetMode
+                      ? "The video stays local until this button is pressed. The upload will publish the split-screen duet clip."
+                      : "The video stays local until this button is pressed. The upload will use the judged highlight clip."}
+            </p>
+          </div>
+        </aside>
+        </div>
       </div>
     </div>
   );

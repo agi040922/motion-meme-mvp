@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SignOutButton } from '@/components/auth/SignOutButton';
-import { useDisplayPreferences } from '@/lib/displayPreferences';
 
 interface ProfileMenuLayerProps {
   isOpen: boolean;
@@ -20,8 +19,6 @@ export function ProfileMenuLayer({
   onAccountClick,
   onSavedMemesClick,
 }: ProfileMenuLayerProps) {
-  const [isDisplayOpen, setIsDisplayOpen] = useState(false);
-  const { preferences, setPreferences } = useDisplayPreferences();
 
   return (
     <AnimatePresence>
@@ -70,55 +67,6 @@ export function ProfileMenuLayer({
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M7 11h10"/><path d="M7 15h10"/><path d="M7 7h10"/></svg>
                 Saved Memes
               </button>
-              <button
-                type="button"
-                disabled
-                onClick={() => setIsDisplayOpen((current) => !current)}
-                className="flex items-center gap-4 p-4 rounded-xl text-left font-medium text-zinc-900 transition-colors hover:bg-zinc-100"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 Z"/></svg>
-                Display
-              </button>
-              {isDisplayOpen ? (
-                <div className="mx-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPreferences((current) => ({
-                        ...current,
-                        compactFeed: !current.compactFeed,
-                      }))
-                    }
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors hover:bg-white"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900">Compact feed</p>
-                      <p className="text-xs text-zinc-500">Reduce post spacing in feed and profile lists</p>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${preferences.compactFeed ? 'bg-black text-white' : 'bg-zinc-200 text-zinc-600'}`}>
-                      {preferences.compactFeed ? 'On' : 'Off'}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPreferences((current) => ({
-                        ...current,
-                        autoplayVideos: !current.autoplayVideos,
-                      }))
-                    }
-                    className="mt-2 flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors hover:bg-white"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900">Autoplay videos</p>
-                      <p className="text-xs text-zinc-500">Start feed videos muted when they render</p>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${preferences.autoplayVideos ? 'bg-black text-white' : 'bg-zinc-200 text-zinc-600'}`}>
-                      {preferences.autoplayVideos ? 'On' : 'Off'}
-                    </span>
-                  </button>
-                </div>
-              ) : null}
               
               <div className="mt-auto mb-4 border-t border-zinc-100 pt-4">
                 <SignOutButton className="w-full justify-between rounded-xl text-red-500 hover:bg-red-50" />

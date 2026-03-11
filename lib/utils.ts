@@ -1,3 +1,39 @@
+type ClassValue =
+  | string
+  | number
+  | null
+  | false
+  | undefined
+  | Record<string, boolean | null | undefined>
+  | ClassValue[];
+
+const flattenClassValue = (value: ClassValue): string => {
+  if (!value) return "";
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => flattenClassValue(entry))
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return Object.entries(value)
+    .filter(([, enabled]) => Boolean(enabled))
+    .map(([className]) => className)
+    .join(" ");
+};
+
+export function cn(...inputs: ClassValue[]) {
+  return inputs
+    .map((input) => flattenClassValue(input))
+    .filter(Boolean)
+    .join(" ");
+}
+
 export function timeAgo(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();

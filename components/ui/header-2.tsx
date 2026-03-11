@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { MenuToggleIcon } from '@/components/ui/menu-toggle-icon';
 import { useScroll } from '@/components/ui/use-scroll';
 import { cn } from '@/lib/utils';
@@ -24,18 +25,32 @@ const links = [
 const headerButtonVariants = ({
   variant = 'default',
   size = 'default',
+  tone = 'light',
   className = '',
 }: {
   variant?: 'default' | 'outline' | 'secondary' | 'ghost';
   size?: 'default' | 'sm';
+  tone?: 'light' | 'dark';
   className?: string;
 }) =>
   cn(
     'inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none',
-    variant === 'default' && 'bg-white text-black hover:bg-zinc-100',
-    variant === 'outline' && 'border border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white',
-    variant === 'secondary' && 'bg-zinc-900 text-white hover:bg-zinc-800',
-    variant === 'ghost' && 'text-white/72 hover:bg-white/10 hover:text-white',
+    variant === 'default' &&
+      (tone === 'light'
+        ? 'bg-white text-black hover:bg-zinc-100'
+        : 'bg-black text-white hover:bg-zinc-800'),
+    variant === 'outline' &&
+      (tone === 'light'
+        ? 'border border-white/24 bg-white/8 text-white hover:bg-white/14 hover:text-white'
+        : 'border border-black/10 bg-white text-zinc-900 hover:bg-zinc-100'),
+    variant === 'secondary' &&
+      (tone === 'light'
+        ? 'bg-zinc-900 text-white hover:bg-zinc-800'
+        : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200'),
+    variant === 'ghost' &&
+      (tone === 'light'
+        ? 'text-white/84 hover:bg-white/12 hover:text-white'
+        : 'text-zinc-700 hover:bg-black/5 hover:text-zinc-950'),
     size === 'default' && 'h-10 px-4 py-2',
     size === 'sm' && 'h-9 px-3',
     className,
@@ -49,6 +64,7 @@ export function Header({
 }: HeaderProps) {
   const [open, setOpen] = React.useState(false);
   const scrolled = useScroll(10);
+  const [pastHero, setPastHero] = React.useState(false);
 
   React.useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
@@ -62,34 +78,92 @@ export function Header({
     setOpen(false);
   }, []);
 
+  React.useEffect(() => {
+    const handleThemeShift = () => {
+      const featuresSection = document.getElementById('features');
+
+      if (!featuresSection) {
+        setPastHero(false);
+        return;
+      }
+
+      const featuresTop = featuresSection.offsetTop;
+      const headerOffset = 96;
+      setPastHero(window.scrollY >= featuresTop - headerOffset);
+    };
+
+    handleThemeShift();
+    window.addEventListener('scroll', handleThemeShift);
+    window.addEventListener('resize', handleThemeShift);
+
+    return () => {
+      window.removeEventListener('scroll', handleThemeShift);
+      window.removeEventListener('resize', handleThemeShift);
+    };
+  }, []);
+
+  const isLightSurface = pastHero && !open;
+
   return (
     <header className="sticky top-0 z-[120] px-3 pt-3 md:px-4 md:pt-4">
       <div
         className={cn(
-          'mx-auto w-full max-w-5xl border border-transparent bg-transparent transition-all duration-300 ease-out md:rounded-[20px]',
+          'mx-auto w-full max-w-5xl border backdrop-blur-xl transition-all duration-300 ease-out md:rounded-[20px]',
           {
-            'border-white/12 bg-black/65 shadow-[0_20px_80px_rgba(0,0,0,0.22)] backdrop-blur-xl':
-              scrolled && !open,
-            'border-white/12 bg-black/90 shadow-[0_20px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl':
+            'border-white/12 bg-black/58 shadow-[0_20px_80px_rgba(0,0,0,0.2)]':
+              !isLightSurface && !open,
+            'border-black/8 bg-white/88 shadow-[0_18px_70px_rgba(15,23,42,0.12)]':
+              isLightSurface,
+            'border-white/14 bg-black/90 shadow-[0_22px_88px_rgba(0,0,0,0.34)]':
               open,
           },
         )}
       >
         <nav
           className={cn(
-            'flex h-14 w-full items-center justify-between px-4 md:h-12 md:transition-all md:ease-out',
+            'flex h-14 w-full items-center justify-between px-4 md:h-14 md:transition-all md:ease-out',
             { 'md:px-3': scrolled },
           )}
         >
-          <Link href="/" className="flex items-center">
-            <WordmarkIcon className="h-6 w-auto text-white" />
+          <Link
+            href="/"
+            className={cn('flex items-center gap-3 transition-colors', {
+              'text-white': !isLightSurface,
+              'text-zinc-950': isLightSurface,
+            })}
+          >
+            <div
+              className={cn(
+                'relative size-9 overflow-hidden rounded-full bg-white shadow-[0_8px_20px_rgba(0,0,0,0.14)] ring-1 ring-black/8',
+                {
+                  'border border-white/18': !isLightSurface,
+                  'border border-black/10': isLightSurface,
+                },
+              )}
+            >
+              <Image
+                src="/favicon-32x32.png"
+                alt="Motion Meme logo"
+                fill
+                sizes="36px"
+                className="object-contain"
+                priority
+              />
+            </div>
+            <span className="text-base font-black uppercase tracking-[0.28em] md:text-xl">
+              Motion Meme
+            </span>
           </Link>
 
           <div className="hidden items-center gap-2 md:flex">
             {links.map((link) => (
               <a
                 key={link.label}
-                className={headerButtonVariants({ variant: 'ghost', size: 'sm' })}
+                className={headerButtonVariants({
+                  variant: 'ghost',
+                  size: 'sm',
+                  tone: isLightSurface ? 'dark' : 'light',
+                })}
                 href={link.href}
               >
                 {link.label}
@@ -101,6 +175,7 @@ export function Header({
               className={headerButtonVariants({
                 variant: 'outline',
                 size: 'sm',
+                tone: isLightSurface ? 'dark' : 'light',
                 className: 'ml-1',
               })}
             >
@@ -110,6 +185,7 @@ export function Header({
               href={primaryCtaHref}
               className={headerButtonVariants({
                 size: 'sm',
+                tone: isLightSurface ? 'dark' : 'light',
               })}
             >
               {primaryCtaLabel}
@@ -118,9 +194,12 @@ export function Header({
 
           <Button
             size="icon"
-            variant="secondary"
+            variant="outline"
             onClick={() => setOpen((prevOpen) => !prevOpen)}
-            className="md:hidden"
+            className={cn('md:hidden', {
+              'border-white/20 bg-white/8 text-white hover:bg-white/14': !isLightSurface,
+              'border-black/10 bg-white text-zinc-950 hover:bg-zinc-100': isLightSurface,
+            })}
           >
             <MenuToggleIcon open={open} className="size-5" duration={300} />
           </Button>
@@ -182,33 +261,3 @@ export function Header({
     </header>
   );
 }
-
-export const WordmarkIcon = (props: React.ComponentProps<'svg'>) => (
-  <svg viewBox="0 0 190 28" fill="none" {...props}>
-    <rect x="1" y="1" width="26" height="26" rx="13" fill="currentColor" fillOpacity="0.14" />
-    <path
-      d="M8 19V9.2h2.44l2.94 4.78 2.94-4.78h2.42V19h-2.28v-6.16l-3.08 4.9h-.08l-3.06-4.86V19H8Z"
-      fill="currentColor"
-    />
-    <text
-      x="39"
-      y="12"
-      fill="currentColor"
-      fontFamily="Inter, system-ui, sans-serif"
-      fontSize="8"
-      letterSpacing="3.2"
-    >
-      MOTION MEME
-    </text>
-    <text
-      x="39"
-      y="23"
-      fill="currentColor"
-      fillOpacity="0.74"
-      fontFamily="Inter, system-ui, sans-serif"
-      fontSize="10"
-    >
-      Camera-first social network
-    </text>
-  </svg>
-);

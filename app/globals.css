@@ -8,6 +8,11 @@
     --bg-end: #1a1a2e;
   }
 
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 96px;
+  }
+
   body {
     font-family:
       "Inter",

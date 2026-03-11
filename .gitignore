@@ -2,12 +2,15 @@
 .next
 node_modules
 .env.local
+.mcp.json
 .omc
 .omx
 tsconfig.tsbuildinfo
+tsconfig.tsbuildinfo.old_*
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 coverage
 dist
+.next_old_*

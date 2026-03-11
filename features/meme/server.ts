@@ -97,6 +97,13 @@ type StageRow = {
   time_limit_seconds: number;
   min_score_to_clear: number;
   success_meme_asset_id: string | null;
+  success_meme_asset: {
+    id: string;
+    title: string;
+    asset_type: string;
+    storage_path: string | null;
+    overlay_preset: Record<string, unknown> | null;
+  } | null;
   rule_config: StageRecord["ruleConfig"];
   is_active: boolean;
 };
@@ -996,7 +1003,19 @@ export const getPlayDashboardData = cache(async (userId: string): Promise<PlayDa
     await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).single(),
       supabase.from("profile_stats").select("*").eq("user_id", userId).single(),
-      supabase.from("stages").select("*").order("stage_number", { ascending: true }),
+      supabase
+        .from("stages")
+        .select(`
+          *,
+          success_meme_asset:success_meme_asset_id (
+            id,
+            title,
+            asset_type,
+            storage_path,
+            overlay_preset
+          )
+        `)
+        .order("stage_number", { ascending: true }),
       supabase.from("stage_progress").select("*").eq("user_id", userId),
       supabase
         .from("play_sessions")
@@ -1058,19 +1077,42 @@ export const getPlayDashboardData = cache(async (userId: string): Promise<PlayDa
       false,
     ),
     stages: ((stagesResult.data ?? []) as StageRow[]).map(
-      (stage): StageRecord => ({
-        id: stage.id,
-        stageNumber: stage.stage_number,
-        slug: stage.slug,
-        title: stage.title,
-        description: stage.description,
-        instructionText: stage.instruction_text,
-        timeLimitSeconds: stage.time_limit_seconds,
-        minScoreToClear: stage.min_score_to_clear,
-        successMemeAssetId: stage.success_meme_asset_id,
-        ruleConfig: stage.rule_config,
-        isActive: stage.is_active,
-      }),
+      (stage): StageRecord => {
+        const overlayPreset = stage.success_meme_asset?.overlay_preset ?? {};
+
+        return {
+          id: stage.id,
+          stageNumber: stage.stage_number,
+          slug: stage.slug,
+          title: stage.title,
+          description: stage.description,
+          instructionText: stage.instruction_text,
+          timeLimitSeconds: stage.time_limit_seconds,
+          minScoreToClear: stage.min_score_to_clear,
+          successMemeAssetId: stage.success_meme_asset_id,
+          memeAsset: stage.success_meme_asset
+            ? {
+                id: stage.success_meme_asset.id,
+                title: stage.success_meme_asset.title,
+                assetType: stage.success_meme_asset.asset_type,
+                publicUrl: getStoragePublicUrl(
+                  stage.success_meme_asset.storage_path,
+                  "meme-assets",
+                ),
+                accent:
+                  typeof overlayPreset.accent === "string"
+                    ? overlayPreset.accent
+                    : null,
+                successSticker:
+                  typeof overlayPreset.successSticker === "string"
+                    ? overlayPreset.successSticker
+                    : null,
+              }
+            : null,
+          ruleConfig: stage.rule_config,
+          isActive: stage.is_active,
+        };
+      },
     ),
     progressByStageId: Object.fromEntries(
       ((progressResult.data ?? []) as StageProgressRow[]).map((progress) => [

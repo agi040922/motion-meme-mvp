@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 
-const KNOWN_BUCKETS = ["avatars", "meme-assets", "post-media"] as const;
+const KNOWN_BUCKETS = ["avatars", "meme-assets", "post-media", "dm-media"] as const;
 
 const getBucketAndPath = (
   storagePath: string | null | undefined,
@@ -8,6 +8,13 @@ const getBucketAndPath = (
 ) => {
   if (!storagePath) {
     return null;
+  }
+
+  if (storagePath.startsWith("/")) {
+    return {
+      bucket: null,
+      path: storagePath,
+    };
   }
 
   if (storagePath.startsWith("http://") || storagePath.startsWith("https://")) {
