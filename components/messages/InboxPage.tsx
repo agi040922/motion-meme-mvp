@@ -3,6 +3,18 @@ import { Avatar } from "@/components/ui/Avatar";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import type { InboxThread } from "@/features/messages/types";
 
+const InboxFlowerSticker = ({ className }: { className: string }) => (
+  <div className={`pointer-events-none absolute ${className}`}>
+    <div className="relative h-full w-full">
+      <span className="absolute left-1/2 top-0 h-[38%] w-[38%] -translate-x-1/2 rounded-full bg-rose-200/80" />
+      <span className="absolute left-0 top-1/2 h-[38%] w-[38%] -translate-y-1/2 rounded-full bg-rose-100/80" />
+      <span className="absolute right-0 top-1/2 h-[38%] w-[38%] -translate-y-1/2 rounded-full bg-fuchsia-100/80" />
+      <span className="absolute bottom-0 left-1/2 h-[38%] w-[38%] -translate-x-1/2 rounded-full bg-rose-200/75" />
+      <span className="absolute left-1/2 top-1/2 h-[22%] w-[22%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-200/90" />
+    </div>
+  </div>
+);
+
 type InboxPageProps = {
   threads: InboxThread[];
 };
@@ -44,8 +56,20 @@ export function InboxPage({ threads }: InboxPageProps) {
                 <Link
                   key={thread.conversationId}
                   href={`/messages/${thread.conversationId}`}
-                  className="block border-t border-zinc-100 px-4 py-4 transition-colors hover:bg-zinc-50 first:border-t-0"
+                  className={`relative block overflow-hidden border-t border-zinc-100 px-4 py-4 transition-colors first:border-t-0 ${
+                    thread.specialRequest?.intent === "dating_intro"
+                      ? "bg-[linear-gradient(135deg,#fff8fb_0%,#ffffff_65%)] hover:bg-[linear-gradient(135deg,#fff1f7_0%,#ffffff_65%)]"
+                      : thread.specialRequest?.intent === "brand_collab"
+                        ? "bg-[linear-gradient(135deg,#f7fbff_0%,#ffffff_65%)] hover:bg-[linear-gradient(135deg,#eef8ff_0%,#ffffff_65%)]"
+                        : "hover:bg-zinc-50"
+                  }`}
                 >
+                  {thread.specialRequest?.intent === "dating_intro" ? (
+                    <>
+                      <InboxFlowerSticker className="-right-2 top-2 h-12 w-12 opacity-70" />
+                      <InboxFlowerSticker className="bottom-2 right-10 h-8 w-8 opacity-45" />
+                    </>
+                  ) : null}
                   <div className="flex items-start gap-3">
                     <Avatar
                       src={thread.otherMember.avatarUrl ?? undefined}
@@ -77,6 +101,17 @@ export function InboxPage({ threads }: InboxPageProps) {
                         </div>
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-sm text-zinc-600">
+                        {thread.specialRequest ? (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                              thread.specialRequest.intent === "dating_intro"
+                                ? "bg-rose-100 text-rose-600"
+                                : "bg-sky-100 text-sky-700"
+                            }`}
+                          >
+                            {thread.specialRequest.intent === "dating_intro" ? "Dating" : "Brand"}
+                          </span>
+                        ) : null}
                         {thread.lastMessage?.messageType === 'image' ? (
                           <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                             Photo

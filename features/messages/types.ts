@@ -30,6 +30,11 @@ export type InboxThread = {
     messageType: MessageKind;
   } | null;
   unreadCount: number;
+  specialRequest?: {
+    intent: "dating_intro" | "brand_collab";
+    theme: string | null;
+    creditsSpent: number;
+  } | null;
 };
 
 export type RoomMessage = {

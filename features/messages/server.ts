@@ -122,7 +122,7 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
     return [];
   }
 
-  const [allMembersResult, conversationsResult, messagesResult] = await Promise.all([
+  const [allMembersResult, conversationsResult, messagesResult, requestsResult] = await Promise.all([
     supabase
       .from("conversation_members")
       .select("conversation_id, user_id, joined_at")
@@ -137,6 +137,11 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
       .in("conversation_id", conversationIds)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("conversation_requests")
+      .select("conversation_id, intent, theme, credits_spent, created_at")
+      .in("conversation_id", conversationIds)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (allMembersResult.error) {
@@ -150,10 +155,14 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
   if (messagesResult.error) {
     throw messagesResult.error;
   }
+  if (requestsResult.error) {
+    throw requestsResult.error;
+  }
 
   const allMembers = (allMembersResult.data ?? []) as ConversationMemberRow[];
   const conversations = (conversationsResult.data ?? []) as ConversationRow[];
   const messages = (messagesResult.data ?? []) as MessageRow[];
+  const requests = ((requestsResult.data ?? []) as Array<ConversationRequestRow & { conversation_id: string; created_at: string }>);
 
   const otherUserIds = Array.from(
     new Set(
@@ -179,6 +188,16 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
     ((profilesResult.data ?? []) as ProfileRow[]).map((profile) => [profile.user_id, profile]),
   );
   const conversationById = new Map(conversations.map((conversation) => [conversation.id, conversation]));
+  const requestByConversationId = new Map(
+    requests.map((request) => [
+      request.conversation_id,
+      {
+        intent: request.intent,
+        theme: request.theme,
+        creditsSpent: request.credits_spent,
+      },
+    ]),
+  );
 
   return conversationIds
     .map((conversationId) => {
@@ -228,9 +247,10 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
             }
           : null,
         unreadCount,
+        specialRequest: requestByConversationId.get(conversationId) ?? null,
       } satisfies InboxThread;
     })
-    .filter((thread): thread is InboxThread => Boolean(thread))
+    .filter((thread): thread is NonNullable<typeof thread> => Boolean(thread))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 });
 
