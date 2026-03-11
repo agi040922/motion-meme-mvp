@@ -211,6 +211,36 @@ const drawSuccessOverlay = ({
   ctx.fillText("Hold locked. Enjoy the hit.", 36, 78);
 };
 
+const drawDuetSuccessOverlay = ({
+  ctx,
+  height,
+  memeAccent,
+  score,
+  width,
+}: {
+  ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  score: number;
+  memeAccent: string;
+}) => {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.16)";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "rgba(10, 10, 12, 0.88)";
+  ctx.fillRect(width / 2 - 170, 24, 340, 76);
+  ctx.strokeStyle = memeAccent;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(width / 2 - 170, 24, 340, 76);
+
+  ctx.fillStyle = memeAccent;
+  ctx.font = '900 18px "Arial Black", Inter, sans-serif';
+  ctx.fillText("DUET CLEAR", width / 2 - 146, 54);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = '700 16px "Arial Black", Inter, sans-serif';
+  ctx.fillText(`${score} pts · keep both sides in frame`, width / 2 - 146, 78);
+};
+
 const drawVideoPanel = ({
   ctx,
   height,
@@ -560,30 +590,30 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
     const startedAt = performance.now();
     const renderCelebration = () => {
       renderCleanCameraScene();
-      ctx.save();
-      ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-      ctx.scale(-1, 1);
-      ctx.drawImage(
-        video,
-        -outputCanvas.width,
-        0,
-        outputCanvas.width,
-        outputCanvas.height,
-      );
-      ctx.restore();
+      renderCameraScene(ctx, outputCanvas);
 
-      drawSuccessOverlay({
-        ctx,
-        width: outputCanvas.width,
-        height: outputCanvas.height,
-        score: celebrationSnapshot.score,
-        stageTitle: `Stage ${selectedStage.stageNumber} · ${selectedStage.title}`,
-        memeName: selectedSuccessMeme?.name ?? "Victory Meme",
-        memeSticker: selectedSuccessMeme?.sticker ?? "CLEAR",
-        memeAccent: selectedSuccessMeme?.accent ?? "#b8ff41",
-        memeImage: celebrationImageRef.current,
-        progress: Math.min(1, (performance.now() - startedAt) / SUCCESS_CELEBRATION_MS),
-      });
+      if (duetReferenceClip) {
+        drawDuetSuccessOverlay({
+          ctx,
+          width: outputCanvas.width,
+          height: outputCanvas.height,
+          score: celebrationSnapshot.score,
+          memeAccent: selectedSuccessMeme?.accent ?? "#b8ff41",
+        });
+      } else {
+        drawSuccessOverlay({
+          ctx,
+          width: outputCanvas.width,
+          height: outputCanvas.height,
+          score: celebrationSnapshot.score,
+          stageTitle: `Stage ${selectedStage.stageNumber} · ${selectedStage.title}`,
+          memeName: selectedSuccessMeme?.name ?? "Victory Meme",
+          memeSticker: selectedSuccessMeme?.sticker ?? "CLEAR",
+          memeAccent: selectedSuccessMeme?.accent ?? "#b8ff41",
+          memeImage: celebrationImageRef.current,
+          progress: Math.min(1, (performance.now() - startedAt) / SUCCESS_CELEBRATION_MS),
+        });
+      }
 
       if (performance.now() - startedAt >= SUCCESS_CELEBRATION_MS) {
         void finishAttempt(true, celebrationSnapshot);
@@ -1458,8 +1488,16 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                         </>
                       ) : null}
                       {(phase === "idle" || phase === "preparing") && selectedPoseGuide && (
-                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <div className="mx-6 flex w-full max-w-[520px] flex-col items-center rounded-2xl border border-zinc-700/50 bg-zinc-800/90 px-8 py-8 text-center backdrop-blur">
+                        <div
+                          className={`pointer-events-none absolute inset-0 flex ${
+                            duetReferenceClip ? "items-end justify-end p-5" : "items-center justify-center"
+                          }`}
+                        >
+                          <div
+                            className={`flex flex-col items-center rounded-2xl border border-zinc-700/50 bg-zinc-800/90 px-8 py-8 text-center backdrop-blur ${
+                              duetReferenceClip ? "w-full max-w-[380px]" : "mx-6 w-full max-w-[520px]"
+                            }`}
+                          >
                             <div className="rounded-full bg-zinc-700/50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
                               Camera standby
                             </div>
@@ -1469,7 +1507,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                             <p className="mt-3 max-w-md text-sm leading-6 text-zinc-400">
                               {selectedPoseGuide.cue}
                             </p>
-                            <div className="mt-5 grid w-full gap-2.5 text-left md:grid-cols-3">
+                            <div className={`mt-5 grid w-full gap-2.5 text-left ${duetReferenceClip ? "" : "md:grid-cols-3"}`}>
                               <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/60 p-3.5">
                                 <p className="text-[11px] uppercase tracking-wide text-zinc-500">Step 1</p>
                                 <p className="mt-1.5 text-sm font-semibold text-white">Watch the pose preview</p>
