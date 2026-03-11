@@ -568,7 +568,7 @@ export const listFeedPosts = async (sort: FeedSort = "latest") => {
   return mapFeedRowsForViewer(rows, viewer?.id ?? null, relationshipState);
 };
 
-export const getProfileByHandle = cache(async (handle: string) => {
+export const getProfileByHandle = async (handle: string) => {
   const supabase = getMemeServerClient();
   const viewer = await getCurrentUser();
 
@@ -781,7 +781,7 @@ export const getProfileByHandle = cache(async (handle: string) => {
     highlights,
     savedPosts,
   };
-});
+};
 
 export const searchProfiles = cache(async (query = "") => {
   const supabase = getMemeServerClient();
@@ -1549,7 +1549,7 @@ export const getConversationRoomData = cache(
   },
 );
 
-export const getViewerProfileSummary = cache(async () => {
+export const getViewerProfileSummary = async () => {
   const viewer = await getCurrentUser();
   if (!viewer) {
     return null;
@@ -1596,4 +1596,4 @@ export const getViewerProfileSummary = cache(async () => {
     viewer.id,
     false,
   );
-});
+};
