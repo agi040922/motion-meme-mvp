@@ -95,28 +95,17 @@ type PlaySessionRow = {
 };
 
 type PlayReferenceRow = {
-  id: string;
-  caption: string;
+  post_id: string;
   author_user_id: string;
-  source_play_session_id: string | null;
-  profiles: {
-    user_id: string;
-    handle: string;
-    display_name: string;
-    avatar_url: string | null;
-  } | null;
-  play_sessions: {
-    stage_id: string;
-    stages: {
-      stage_number: number;
-      title: string;
-    } | null;
-  } | null;
-  post_media: Array<{
-    storage_path: string;
-    poster_path: string | null;
-    media_type: "video" | "image";
-  }> | null;
+  author_handle: string;
+  author_display_name: string;
+  author_avatar_url: string | null;
+  caption: string;
+  video_path: string | null;
+  poster_path: string | null;
+  stage_id: string | null;
+  stage_number: number | null;
+  stage_title: string | null;
 };
 
 const getMemeServerClient = () => createServerSupabaseClient().schema("meme");
@@ -1130,53 +1119,20 @@ export const getPlayReferenceClip = cache(
     const supabase = getMemeServerClient();
 
     const { data, error } = await supabase
-      .from("posts")
-      .select(`
-        id,
-        caption,
-        author_user_id,
-        source_play_session_id,
-        profiles:author_user_id (
-          user_id,
-          handle,
-          display_name,
-          avatar_url
-        ),
-        play_sessions:source_play_session_id (
-          stage_id,
-          stages:stage_id (
-            stage_number,
-            title
-          )
-        ),
-        post_media (
-          storage_path,
-          poster_path,
-          media_type
-        )
-      `)
-      .eq("id", postId)
-      .eq("post_type", "play_video")
-      .is("deleted_at", null)
-      .single();
+      .rpc("get_public_play_reference", { p_post_id: postId });
 
-    if (error || !data) {
+    if (error || !data || data.length === 0) {
       return null;
     }
 
-    const row = data as unknown as PlayReferenceRow;
-    const media = (row.post_media ?? []).find((item) => item.media_type === "video");
-    const profile = row.profiles;
-    const session = row.play_sessions;
-    const stage = session?.stages;
-
-    if (!media || !profile || !session?.stage_id || !stage?.stage_number || !stage.title) {
+    const row = (data as unknown as PlayReferenceRow[])[0];
+    if (!row.video_path || !row.stage_id || !row.stage_number || !row.stage_title) {
       return null;
     }
 
     const [videoUrl, posterUrl] = await Promise.all([
-      getStoragePublicUrl(media.storage_path, "post-media"),
-      getStoragePublicUrl(media.poster_path, "post-media"),
+      getStoragePublicUrl(row.video_path, "post-media"),
+      getStoragePublicUrl(row.poster_path, "post-media"),
     ]);
 
     if (!videoUrl) {
@@ -1184,16 +1140,16 @@ export const getPlayReferenceClip = cache(
     }
 
     return {
-      postId: row.id,
-      authorUserId: profile.user_id,
-      authorHandle: profile.handle,
-      authorDisplayName: profile.display_name,
+      postId: row.post_id,
+      authorUserId: row.author_user_id,
+      authorHandle: row.author_handle,
+      authorDisplayName: row.author_display_name,
       caption: row.caption,
       videoUrl,
       posterUrl,
-      stageId: session.stage_id,
-      stageNumber: stage.stage_number,
-      stageTitle: stage.title,
+      stageId: row.stage_id,
+      stageNumber: row.stage_number,
+      stageTitle: row.stage_title,
     };
   },
 );
