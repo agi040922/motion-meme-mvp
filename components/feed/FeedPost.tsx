@@ -61,6 +61,7 @@ export function FeedPost({ post, currentUser }: FeedPostProps) {
   const canComment = Boolean(post.viewerState.currentUserId);
   const { preferences } = useDisplayPreferences();
   const isCurrentUsersPost =
+    (post.viewerState.currentUserId && post.author.id === post.viewerState.currentUserId) ||
     (currentUser?.id && post.author.id === currentUser.id) ||
     post.author.relationship.isCurrentUser;
   const duetMatch = body.match(DUET_TAG_PATTERN);
