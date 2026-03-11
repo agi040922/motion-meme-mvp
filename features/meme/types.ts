@@ -127,6 +127,19 @@ export type FeedPost = {
   comments: PostComment[];
 };
 
+export type PlayReferenceClip = {
+  postId: string;
+  authorUserId: string;
+  authorHandle: string;
+  authorDisplayName: string;
+  caption: string;
+  videoUrl: string;
+  posterUrl: string | null;
+  stageId: string;
+  stageNumber: number;
+  stageTitle: string;
+};
+
 export type PlaySessionRecord = {
   id: string;
   userId: string;
@@ -174,6 +187,7 @@ export type PlayDashboardData = {
   stages: StageRecord[];
   progressByStageId: Record<string, StageProgressRecord>;
   recentSessions: PlaySessionRecord[];
+  referenceClip: PlayReferenceClip | null;
 };
 
 export type PlayHistorySession = PlaySessionRecord & {

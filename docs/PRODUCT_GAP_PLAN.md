@@ -100,6 +100,7 @@
 - 댓글 미디어: 1차 구현 완료
 - 신고/차단/숨기기: 1차 구현 완료
 - 저장(Saved Memes): 실제 `post_bookmarks` 모델 반영 완료
+- reference clip duet: 1차 구현 완료
 
 #### 필요한 구현
 
@@ -120,6 +121,7 @@
 - 타인 콘텐츠에 대한 기본 액션이 제공됨
 - 댓글에 이미지/스크린샷 첨부 가능
 - 저장/신고/차단 중 MVP 최소셋이 작동함
+- 업로드된 play clip을 reference로 열고 side-by-side duet 플레이 가능
 
 ---
 

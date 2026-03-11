@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useTransition } from 'react';
+import Link from 'next/link';
+import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SocialPost } from '@/components/layout/socialUi';
 import { Avatar } from '../ui/Avatar';
-import { HeartIcon, MessageCircleIcon, SendIcon, MoreHorizontalIcon, ImageIcon } from '../ui/icons';
+import { HeartIcon, MessageCircleIcon, SendIcon, MoreHorizontalIcon } from '../ui/icons';
 import { Button } from '../ui/Button';
 import { RelativeTime } from '../ui/RelativeTime';
 import { useDisplayPreferences } from '@/lib/displayPreferences';
 import { StartDmButton } from '@/components/messages/StartDmButton';
 import {
-  addCommentWithMedia,
+  addComment,
   blockUser,
   updateComment,
   deleteComment,
@@ -29,6 +30,8 @@ interface FeedPostProps {
   } | null;
 }
 
+const DUET_TAG_PATTERN = /^with\s+@([a-z0-9._-]+)\s*[·-]\s*/i;
+
 export function FeedPost({ post }: FeedPostProps) {
   const router = useRouter();
   const [isLiked, setIsLiked] = useState(post.viewerState.liked);
@@ -42,8 +45,6 @@ export function FeedPost({ post }: FeedPostProps) {
   const [editingPostDraft, setEditingPostDraft] = useState(post.body);
   const [comments, setComments] = useState(post.commentsPreview ?? []);
   const [commentDraft, setCommentDraft] = useState('');
-  const [commentImage, setCommentImage] = useState<File | null>(null);
-  const [commentImageUrl, setCommentImageUrl] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentDraft, setEditingCommentDraft] = useState('');
   const [commentCount, setCommentCount] = useState(post.counts.comments);
@@ -56,24 +57,12 @@ export function FeedPost({ post }: FeedPostProps) {
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [isRemoved, setIsRemoved] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const commentImageInputRef = useRef<HTMLInputElement | null>(null);
   const isVideo = post.media?.kind === 'video';
   const canComment = Boolean(post.viewerState.currentUserId);
   const { preferences } = useDisplayPreferences();
-
-  useEffect(() => {
-    if (!commentImage) {
-      setCommentImageUrl(null);
-      return undefined;
-    }
-
-    const objectUrl = URL.createObjectURL(commentImage);
-    setCommentImageUrl(objectUrl);
-
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
-  }, [commentImage]);
+  const duetMatch = body.match(DUET_TAG_PATTERN);
+  const duetHandle = duetMatch?.[1] ?? null;
+  const postBody = duetMatch ? body.replace(DUET_TAG_PATTERN, '') : body;
 
   const handleLike = () => {
     startTransition(async () => {
@@ -102,10 +91,9 @@ export function FeedPost({ post }: FeedPostProps) {
     setCommentErrorMessage(null);
 
     try {
-      const createdComment = await addCommentWithMedia(post.id, trimmedDraft, commentImage);
+      const createdComment = await addComment(post.id, trimmedDraft);
       setComments((current) => [...current, createdComment]);
       setCommentDraft('');
-      setCommentImage(null);
       setCommentCount((current) => current + 1);
       setIsCommentsOpen(true);
       router.refresh();
@@ -243,25 +231,6 @@ export function FeedPost({ post }: FeedPostProps) {
     window.setTimeout(() => {
       setShareFeedback(null);
     }, 1800);
-  };
-
-  const handleCommentPaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    if (!canComment || isCommentSubmitting) {
-      return;
-    }
-
-    const pastedImage = Array.from(event.clipboardData.items).find((item) =>
-      item.type.startsWith('image/'),
-    );
-    const imageFile = pastedImage?.getAsFile() ?? null;
-
-    if (!imageFile) {
-      return;
-    }
-
-    event.preventDefault();
-    setCommentImage(imageFile);
-    setCommentErrorMessage(null);
   };
 
   const copyPostLink = async () => {
@@ -582,8 +551,17 @@ export function FeedPost({ post }: FeedPostProps) {
                 </Button>
               </div>
             </div>
-          ) : body ? (
-            <p className="mb-3 whitespace-pre-wrap leading-relaxed text-zinc-800">{body}</p>
+          ) : postBody || duetHandle ? (
+            <div className="mb-3 space-y-2">
+              {duetHandle ? (
+                <div className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                  with @{duetHandle}
+                </div>
+              ) : null}
+              {postBody ? (
+                <p className="whitespace-pre-wrap leading-relaxed text-zinc-800">{postBody}</p>
+              ) : null}
+            </div>
           ) : null}
 
           {post.kind === 'stage_result' && post.stageResult && (
@@ -619,6 +597,20 @@ export function FeedPost({ post }: FeedPostProps) {
               )}
             </div>
           )}
+
+          {post.kind === 'stage_result' && isVideo ? (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Link
+                href={`/play?reference=${post.id}`}
+                className="inline-flex items-center rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+              >
+                Try with this clip
+              </Link>
+              <span className="text-xs text-zinc-500">
+                Open split-screen mode with @{post.author.handle}&apos;s uploaded run.
+              </span>
+            </div>
+          ) : null}
 
           {postErrorMessage && (
             <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -667,14 +659,6 @@ export function FeedPost({ post }: FeedPostProps) {
 
           {isCommentsOpen && (
             <div className="mt-4 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4">
-              <div className="mb-4 rounded-2xl border border-zinc-200 bg-white px-4 py-3">
-                <p className="text-sm font-semibold text-zinc-900">Reply with text</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Screenshot paste for comments was reviewed, but comment media is not wired yet in
-                  this MVP.
-                </p>
-              </div>
-
               <div className="space-y-3">
                 {comments.length > 0 ? (
                   comments.map((comment) => (
@@ -753,19 +737,7 @@ export function FeedPost({ post }: FeedPostProps) {
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <p className="mt-1 text-sm text-zinc-700">{comment.content}</p>
-                            {comment.media ? (
-                              <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={comment.media.publicUrl}
-                                  alt="Comment attachment"
-                                  className="max-h-[240px] w-full object-cover"
-                                />
-                              </div>
-                            ) : null}
-                          </>
+                          <p className="mt-1 text-sm text-zinc-700">{comment.content}</p>
                         )}
                         <RelativeTime
                           dateString={comment.createdAt}
@@ -796,7 +768,6 @@ export function FeedPost({ post }: FeedPostProps) {
                   id={`comment-${post.id}`}
                   value={commentDraft}
                   onChange={(event) => setCommentDraft(event.target.value)}
-                  onPaste={handleCommentPaste}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault();
@@ -811,71 +782,22 @@ export function FeedPost({ post }: FeedPostProps) {
                   disabled={!canComment || isCommentSubmitting}
                   className="min-h-[88px] w-full resize-none border-none bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:text-zinc-400"
                 />
-                <input
-                  ref={commentImageInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  disabled={!canComment || isCommentSubmitting}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    setCommentImage(file);
-                  }}
-                />
-                {commentImage && commentImageUrl ? (
-                  <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={commentImageUrl}
-                      alt={commentImage.name || 'Comment attachment preview'}
-                      className="max-h-[220px] w-full object-cover"
-                    />
-                    <div className="flex items-center justify-between px-3 py-2 text-xs text-zinc-500">
-                      <span>{commentImage.name || 'Pasted screenshot'}</span>
-                      <button
-                        type="button"
-                        className="font-semibold text-zinc-700"
-                        onClick={() => {
-                          setCommentImage(null);
-                          if (commentImageInputRef.current) {
-                            commentImageInputRef.current.value = '';
-                          }
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
                   <p className="text-xs text-zinc-500">
                     {canComment
-                      ? 'Press Enter to reply, Shift+Enter for a new line, or attach/paste an image.'
+                      ? 'Press Enter to reply, Shift+Enter for a new line.'
                       : 'Sign in with Google to reply in the thread.'}
                   </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="rounded-full px-3"
-                      disabled={!canComment || isCommentSubmitting}
-                      onClick={() => commentImageInputRef.current?.click()}
-                    >
-                      <ImageIcon className="mr-1 h-4 w-4" />
-                      Image
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      className="rounded-full px-4"
-                      disabled={!canComment || (!commentDraft.trim() && !commentImage) || isCommentSubmitting}
-                      onClick={() => void handleComment()}
-                    >
-                      {isCommentSubmitting ? 'Posting...' : 'Reply'}
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    className="rounded-full px-4"
+                    disabled={!canComment || !commentDraft.trim() || isCommentSubmitting}
+                    onClick={() => void handleComment()}
+                  >
+                    {isCommentSubmitting ? 'Posting...' : 'Reply'}
+                  </Button>
                 </div>
               </div>
             </div>

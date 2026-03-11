@@ -49,6 +49,7 @@
 - 결과 영상 생성 및 업로드 전 미리보기
 - 랜딩, 피드, 프로필, 기록 화면 제공
 - 카메라 권한 안내 / 튜토리얼 / DM inbox / DM room 화면 제공
+- 업로드된 `play_video` 게시물을 reference video로 재생하는 duet mode 지원
 
 ### 백엔드 책임
 
@@ -125,6 +126,7 @@
 - 이미지/텍스트/스틱/플래시 정도까지는 Canvas 2D로 충분
 - 파티클, 글로우, 글리치, 왜곡 효과가 많아지면 PixiJS로 확장
 - 비디오 결과물 생성은 `camera stream + overlay canvas` 합성 전략을 검토한다
+- duet mode는 `reference <video> + local camera + overlay canvas`를 하나의 split-screen canvas로 합성해 업로드 결과에 그대로 반영한다
 
 ## 7. 포즈 인식 및 판정 설계
 
@@ -134,6 +136,7 @@
 - 기본 해상도는 720p 이하로 제한해 성능 우선
 - 모바일에서는 전면 카메라를 기본값으로 검토 가능
 - 결과 업로드 영상 길이는 최대 15초로 제한한다
+- duet mode에서는 reference video는 재생 전용이며, 판정은 항상 로컬 카메라 기준으로만 수행한다
 
 ### 7.2 포즈 인식
 

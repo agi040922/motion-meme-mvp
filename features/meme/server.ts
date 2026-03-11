@@ -10,6 +10,7 @@ import type {
   FeedSort,
   PlayDashboardData,
   PlayHistoryData,
+  PlayReferenceClip,
   PlayHistorySession,
   PlaySessionRecord,
   PlaySessionWithStage,
@@ -91,6 +92,31 @@ type PlaySessionRow = {
   uploaded_at: string | null;
   created_post_id: string | null;
   created_at: string;
+};
+
+type PlayReferenceRow = {
+  id: string;
+  caption: string;
+  author_user_id: string;
+  source_play_session_id: string | null;
+  profiles: {
+    user_id: string;
+    handle: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+  play_sessions: {
+    stage_id: string;
+    stages: {
+      stage_number: number;
+      title: string;
+    } | null;
+  } | null;
+  post_media: Array<{
+    storage_path: string;
+    poster_path: string | null;
+    media_type: "video" | "image";
+  }> | null;
 };
 
 const getMemeServerClient = () => createServerSupabaseClient().schema("meme");
@@ -1095,8 +1121,82 @@ export const getPlayDashboardData = cache(async (userId: string): Promise<PlayDa
         createdAt: session.created_at,
       }),
     ),
+    referenceClip: null,
   };
 });
+
+export const getPlayReferenceClip = cache(
+  async (postId: string): Promise<PlayReferenceClip | null> => {
+    const supabase = getMemeServerClient();
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select(`
+        id,
+        caption,
+        author_user_id,
+        source_play_session_id,
+        profiles:author_user_id (
+          user_id,
+          handle,
+          display_name,
+          avatar_url
+        ),
+        play_sessions:source_play_session_id (
+          stage_id,
+          stages:stage_id (
+            stage_number,
+            title
+          )
+        ),
+        post_media (
+          storage_path,
+          poster_path,
+          media_type
+        )
+      `)
+      .eq("id", postId)
+      .eq("post_type", "play_video")
+      .is("deleted_at", null)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    const row = data as unknown as PlayReferenceRow;
+    const media = (row.post_media ?? []).find((item) => item.media_type === "video");
+    const profile = row.profiles;
+    const session = row.play_sessions;
+    const stage = session?.stages;
+
+    if (!media || !profile || !session?.stage_id || !stage?.stage_number || !stage.title) {
+      return null;
+    }
+
+    const [videoUrl, posterUrl] = await Promise.all([
+      getStoragePublicUrl(media.storage_path, "post-media"),
+      getStoragePublicUrl(media.poster_path, "post-media"),
+    ]);
+
+    if (!videoUrl) {
+      return null;
+    }
+
+    return {
+      postId: row.id,
+      authorUserId: profile.user_id,
+      authorHandle: profile.handle,
+      authorDisplayName: profile.display_name,
+      caption: row.caption,
+      videoUrl,
+      posterUrl,
+      stageId: session.stage_id,
+      stageNumber: stage.stage_number,
+      stageTitle: stage.title,
+    };
+  },
+);
 
 export const getPlayHistoryData = cache(async (userId: string): Promise<PlayHistoryData> => {
   const supabase = getMemeServerClient();

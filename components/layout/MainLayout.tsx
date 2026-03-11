@@ -34,10 +34,25 @@ export function MainLayout({
             <h3 className="font-bold text-lg mb-2">Ready to move?</h3>
             <p className="text-zinc-500 text-sm mb-4">Turn on your camera and conquer the stages!</p>
             <Link
-              href={currentUser ? "/camera" : "/auth/login?next=/camera"}
+              href={currentUser ? "/play" : "/auth/login?next=/play"}
               className="block w-full rounded-xl bg-black py-3 text-center font-bold text-white transition-colors hover:bg-zinc-800"
             >
               Start Challenge
+            </Link>
+          </div>
+          <div className="mt-4 rounded-2xl border border-rose-100 bg-white p-6 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-500">
+              Limited Social Event
+            </p>
+            <h3 className="mt-2 text-lg font-bold text-zinc-900">Tonight&apos;s Chemistry Duet</h3>
+            <p className="mt-2 text-sm leading-6 text-zinc-500">
+              Find a play clip in the feed, open split-screen duet mode, and send a DM if the vibe matches.
+            </p>
+            <Link
+              href="/feed?sort=popular"
+              className="mt-4 block w-full rounded-xl border border-zinc-200 py-3 text-center text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-50"
+            >
+              Browse duet-ready clips
             </Link>
           </div>
         </div>

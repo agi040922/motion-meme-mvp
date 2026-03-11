@@ -32,6 +32,12 @@
   - 피드 / 프로필 / 좌측 네비게이션에서 DM 진입 가능
   - room presence / typing indicator 2차 보강
   - DM image attachment / screenshot paste / private storage signed URL 지원
+- duet reference mode
+  - 피드의 `play_video` 카드에서 `Try with this clip`으로 `/play?reference=<postId>` 진입 가능
+  - `/play`에서 reference clip과 내 카메라를 split-screen으로 합성
+  - duet 업로드는 split-screen 결과 클립으로 공유
+  - duet 결과 캡션에 `with @handle` 태그 자동 주입
+  - 결과 패널에서 `DM 보내보실래요?` CTA 제공
 - 플레이 화면 초안 구현
   - `/play` 라우트 추가
   - MediaPipe Pose Landmarker 기반 포즈 점수화 초안
@@ -90,6 +96,7 @@
   - 자기 글 수정
   - share / copy link
   - 타인 글 more 메뉴: report / hide / block
+  - `Try with this clip` duet 진입
 - DM
   - inbox 목록
   - room 채팅
@@ -118,6 +125,8 @@
   - 점수 계산
   - local preview 생성
   - 업로드 버튼 기반 게시
+  - reference clip side-by-side duet
+  - duet 결과 DM CTA
   - 권한 안내 / 튜토리얼 / 히스토리 보조 라우트
 
 ### 부분만 동작하는 것
