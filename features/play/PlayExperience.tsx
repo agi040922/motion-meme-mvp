@@ -393,6 +393,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
       : previewUrl ?? rawPreviewUrl;
   const isResultReady =
     phase === "result" && Boolean(selectedPreviewUrl) && Boolean(sessionId) && Boolean(selectedUploadBlob);
+  const canPublish = phase === "result" && isResultReady && !isPublishing;
 
   useEffect(() => {
     return () => {
@@ -1662,7 +1663,7 @@ export const PlayExperience = ({ initialData }: PlayExperienceProps) => {
                         type="button"
                         size="lg"
                         className="flex-1 rounded-full bg-black text-white hover:bg-zinc-800 disabled:opacity-50"
-                        disabled={isPublishing}
+                        disabled={!canPublish}
                         onClick={handlePublish}
                       >
                         {isPublishing
