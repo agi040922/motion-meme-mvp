@@ -31,6 +31,7 @@
   - `/messages` inbox / `/messages/[conversationId]` room 추가
   - 피드 / 프로필 / 좌측 네비게이션에서 DM 진입 가능
   - room presence / typing indicator 2차 보강
+  - DM image attachment / screenshot paste / private storage signed URL 지원
 - 플레이 화면 초안 구현
   - `/play` 라우트 추가
   - MediaPipe Pose Landmarker 기반 포즈 점수화 초안
@@ -46,6 +47,8 @@
   - feed `popular` 정렬을 반응 수 + 최근성 가중치로 보강
 - 랜딩 보강
   - 로그인 CTA와 공개 feed preview 섹션 추가
+ - 이메일 계획 정리
+   - `docs/EMAIL_NOTIFICATION_PLAN.md` 추가
 
 ### 진행 중
 
@@ -65,6 +68,7 @@
 - `/play` E2E 브라우저 검증 자동화
 - 댓글 이미지 첨부 / 저장 경로 안정화
 - 추천성 feed 확장 포인트 설계 고도화
+- Resend 이메일 알림 구현
 
 ## 프런트 기능 매트릭스
 
@@ -92,6 +96,8 @@
   - profile / post에서 DM 진입
   - online / offline 표시
   - typing 표시
+  - 이미지 첨부
+  - 스크린샷 paste 첨부
 - 검색/프로필
   - 프로필 조회
   - follow / unfollow
@@ -152,6 +158,13 @@
 - DM / support polish
   - room presence / typing indicator
   - `/play/permissions`, `/play/guide`, `/play/history` modal-like card 정리
+
+### 후속 기술부채 메모
+
+- DM 로직 단일화
+  - 현재 실제 `/messages` 화면은 `features/messages/*` 경로를 사용한다.
+  - `features/meme/browser.ts`, `features/meme/server.ts` 안에는 DM 관련 중복 구현이 일부 남아 있다.
+  - 현재 기능 우선순위상 제거는 defer 했고, 후속 정리 시 DM 로직을 단일 source로 합쳐야 한다.
 
 ### 이번 턴 의도적으로 defer한 항목
 - `FeedPost`의 share/send 버튼

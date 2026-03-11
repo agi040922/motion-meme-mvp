@@ -205,6 +205,14 @@ export const ensureDirectConversation = async (otherUserId: string) => {
   });
 
   if (error || !data) {
+    console.error("Failed to open direct conversation", error);
+
+    const normalized = error?.message?.trim().toLowerCase();
+    if (normalized?.includes("conversation unavailable")
+      || normalized?.includes("conversation not available")) {
+      throw new Error("This conversation is unavailable right now.");
+    }
+
     throw new Error("Conversation could not be opened. Please try again.");
   }
 
@@ -284,6 +292,18 @@ export const addComment = async (postId: string, content: string) => {
     throw new Error("Comment could not be posted. Please try again.");
   }
 
+  void fetch('/api/notifications/comment', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      commentId: data.id,
+    }),
+  }).catch(() => {
+    // Best-effort notification trigger.
+  });
+
   const profile = await getViewerProfile(userId);
 
   return {
@@ -343,6 +363,18 @@ export const addCommentWithMedia = async (
     if (error) {
       throw error;
     }
+
+    void fetch('/api/notifications/comment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        commentId: data.id,
+      }),
+    }).catch(() => {
+      // Best-effort notification trigger.
+    });
 
     const { error: mediaError } = await meme.from("comment_media").insert({
       comment_id: commentId,
