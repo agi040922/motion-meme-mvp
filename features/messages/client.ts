@@ -200,6 +200,40 @@ export const ensureDirectConversation = async (targetUserId: string) => {
   throw new Error(toConversationOpenErrorMessage(rpcResult.error?.message));
 };
 
+export const startSpecialConversation = async (input: {
+  targetUserId: string;
+  intent: "dating_intro" | "brand_collab";
+  theme?: string | null;
+  openingMessage?: string;
+}) => {
+  const currentUserId = await getCurrentUserId();
+  if (currentUserId === input.targetUserId) {
+    throw new Error("You cannot start a direct message with yourself.");
+  }
+
+  const supabase = getMessagesBrowserClient();
+  const { data, error } = await supabase.rpc("start_special_conversation", {
+    p_other_user_id: input.targetUserId,
+    p_intent: input.intent,
+    p_theme: input.theme ?? null,
+    p_opening_message: input.openingMessage?.trim() ?? "",
+  });
+
+  if (error || !data || data.length === 0) {
+    if (error?.message?.toLowerCase().includes("not enough credits")) {
+      throw new Error("Not enough credits.");
+    }
+
+    throw new Error(toConversationOpenErrorMessage(error?.message));
+  }
+
+  return data[0] as {
+    conversation_id: string;
+    request_id: string;
+    balance: number;
+  };
+};
+
 export const sendDirectMessage = async (
   conversationId: string,
   body: string,

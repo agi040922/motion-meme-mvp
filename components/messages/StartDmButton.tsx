@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { ensureDirectConversation } from "@/features/messages/client";
+import { ensureDirectConversation, startSpecialConversation } from "@/features/messages/client";
 import { BuyCreditsModal } from "@/components/profile/BuyCreditsModal";
-import { SPECIAL_DM_COST, spendCredits, useCreditBalance, type SpecialDmIntent } from "@/lib/credits";
+import { SPECIAL_DM_COST, useCreditBalance, type SpecialDmIntent } from "@/lib/credits";
 
 type StartDmButtonProps = {
   targetUserId: string;
@@ -30,7 +30,7 @@ export function StartDmButton({
   const [isIntentOpen, setIsIntentOpen] = useState(false);
   const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { balance } = useCreditBalance();
+  const { balance, isLoading } = useCreditBalance();
 
   const openConversation = (intent: "just_chat" | SpecialDmIntent) => {
     startTransition(async () => {
@@ -45,14 +45,16 @@ export function StartDmButton({
           }
         }
 
-        const conversationId = await ensureDirectConversation(targetUserId);
-
         if (intent !== "just_chat") {
-          const cost = SPECIAL_DM_COST[intent];
-          spendCredits(cost);
           const theme = intent === "dating_intro" ? "blossom" : "brand-dark";
-          router.push(`/messages/${conversationId}?intent=${intent}&theme=${theme}&spent=${cost}`);
+          const result = await startSpecialConversation({
+            targetUserId,
+            intent,
+            theme,
+          });
+          router.push(`/messages/${result.conversation_id}`);
         } else {
+          const conversationId = await ensureDirectConversation(targetUserId);
           router.push(`/messages/${conversationId}`);
         }
 
@@ -92,11 +94,13 @@ export function StartDmButton({
       <Modal isOpen={isIntentOpen} onClose={() => setIsIntentOpen(false)} title={`Message @${targetHandle}`}>
         <div className="space-y-5 p-5">
           <div className="rounded-3xl border border-zinc-200 bg-zinc-50 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-              Credits available
-            </p>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <p className="text-3xl font-black tracking-tight text-zinc-900">{balance}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                Credits available
+              </p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="text-3xl font-black tracking-tight text-zinc-900">
+                {isLoading ? '...' : balance}
+              </p>
               <Button
                 type="button"
                 variant="secondary"

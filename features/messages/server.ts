@@ -1,6 +1,13 @@
 import { cache } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { ConversationRoom, InboxThread, MessageProfile, RoomMessage } from "@/features/messages/types";
+import type {
+  ConversationRoom,
+  InboxThread,
+  MessageAttachment,
+  MessageKind,
+  MessageProfile,
+  RoomMessage,
+} from "@/features/messages/types";
 
 type ConversationMemberRow = {
   conversation_id: string;
@@ -20,6 +27,11 @@ type MessageRow = {
   conversation_id: string;
   sender_user_id: string;
   body: string;
+  message_type: MessageKind;
+  media_storage_path: string | null;
+  media_mime_type: string | null;
+  media_width: number | null;
+  media_height: number | null;
   created_at: string;
 };
 
@@ -30,7 +42,15 @@ type ProfileRow = {
   avatar_url: string | null;
 };
 
+type ConversationRequestRow = {
+  intent: "dating_intro" | "brand_collab";
+  theme: string | null;
+  credits_spent: number;
+};
+
 const getMessagesServerClient = () => createServerSupabaseClient().schema("meme");
+const DM_MEDIA_BUCKET = "dm-media";
+const DM_MEDIA_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 const mapProfile = (profile: ProfileRow | undefined): MessageProfile => ({
   userId: profile?.user_id ?? "",
@@ -38,6 +58,50 @@ const mapProfile = (profile: ProfileRow | undefined): MessageProfile => ({
   displayName: profile?.display_name ?? "Player",
   avatarUrl: profile?.avatar_url ?? null,
 });
+
+const getMessagePreviewText = (message: Pick<MessageRow, "body" | "message_type">) => {
+  const trimmedBody = message.body.trim();
+
+  if (trimmedBody) {
+    return trimmedBody;
+  }
+
+  if (message.message_type === "image") {
+    return "Photo";
+  }
+
+  return "";
+};
+
+const getSignedDmAttachment = async (
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  message: MessageRow,
+): Promise<MessageAttachment | null> => {
+  if (
+    message.message_type !== "image"
+    || !message.media_storage_path
+    || !message.media_mime_type
+  ) {
+    return null;
+  }
+
+  const { data, error } = await supabase.storage
+    .from(DM_MEDIA_BUCKET)
+    .createSignedUrl(message.media_storage_path, DM_MEDIA_SIGNED_URL_TTL_SECONDS);
+
+  if (error || !data?.signedUrl) {
+    return null;
+  }
+
+  return {
+    kind: "image",
+    storagePath: message.media_storage_path,
+    mimeType: message.media_mime_type,
+    width: message.media_width,
+    height: message.media_height,
+    url: data.signedUrl,
+  };
+};
 
 export const listInboxThreads = cache(async (userId: string): Promise<InboxThread[]> => {
   const supabase = getMessagesServerClient();
@@ -69,8 +133,9 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
       .in("id", conversationIds),
     supabase
       .from("messages")
-      .select("id, conversation_id, sender_user_id, body, created_at")
+      .select("id, conversation_id, sender_user_id, body, message_type, media_storage_path, media_mime_type, media_width, media_height, created_at")
       .in("conversation_id", conversationIds)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false }),
   ]);
 
@@ -156,8 +221,10 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
           ? {
               id: lastMessage.id,
               body: lastMessage.body,
+              previewText: getMessagePreviewText(lastMessage),
               createdAt: lastMessage.created_at,
               senderUserId: lastMessage.sender_user_id,
+              messageType: lastMessage.message_type,
             }
           : null,
         unreadCount,
@@ -169,7 +236,8 @@ export const listInboxThreads = cache(async (userId: string): Promise<InboxThrea
 
 export const getConversationRoom = cache(
   async (conversationId: string, userId: string): Promise<ConversationRoom | null> => {
-    const supabase = getMessagesServerClient();
+    const baseSupabase = createServerSupabaseClient();
+    const supabase = baseSupabase.schema("meme");
 
     const membershipResult = await supabase
       .from("conversation_members")
@@ -186,20 +254,28 @@ export const getConversationRoom = cache(
       return null;
     }
 
-    const [membersResult, messagesResult, conversationResult] = await Promise.all([
+    const [membersResult, messagesResult, conversationResult, requestResult] = await Promise.all([
       supabase
         .from("conversation_members")
         .select("conversation_id, user_id, joined_at")
         .eq("conversation_id", conversationId),
       supabase
         .from("messages")
-        .select("id, conversation_id, sender_user_id, body, created_at")
+        .select("id, conversation_id, sender_user_id, body, message_type, media_storage_path, media_mime_type, media_width, media_height, created_at")
         .eq("conversation_id", conversationId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
       supabase
         .from("conversations")
         .select("id, created_at, updated_at")
         .eq("id", conversationId)
+        .maybeSingle(),
+      supabase
+        .from("conversation_requests")
+        .select("intent, theme, credits_spent")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
     ]);
 
@@ -213,6 +289,9 @@ export const getConversationRoom = cache(
 
     if (conversationResult.error) {
       throw conversationResult.error;
+    }
+    if (requestResult.error) {
+      throw requestResult.error;
     }
 
     const members = (membersResult.data ?? []) as ConversationMemberRow[];
@@ -239,6 +318,11 @@ export const getConversationRoom = cache(
       ((profilesResult.data ?? []) as ProfileRow[]).map((profile) => [profile.user_id, profile]),
     );
     const typedMembership = membershipResult.data as ConversationMemberRow;
+    const attachmentsByMessageId = new Map(
+      await Promise.all(
+        messages.map(async (message) => [message.id, await getSignedDmAttachment(baseSupabase, message)] as const),
+      ),
+    );
 
     return {
       conversationId,
@@ -254,9 +338,18 @@ export const getConversationRoom = cache(
         conversationId: message.conversation_id,
         senderUserId: message.sender_user_id,
         body: message.body,
+        messageType: message.message_type,
+        attachment: attachmentsByMessageId.get(message.id) ?? null,
         createdAt: message.created_at,
         sender: mapProfile(profileByUserId.get(message.sender_user_id)),
       })) satisfies RoomMessage[],
+      specialRequest: requestResult.data
+        ? {
+            intent: (requestResult.data as ConversationRequestRow).intent,
+            theme: (requestResult.data as ConversationRequestRow).theme,
+            creditsSpent: (requestResult.data as ConversationRequestRow).credits_spent,
+          }
+        : null,
     };
   },
 );

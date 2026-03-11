@@ -2,7 +2,8 @@
 
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { CREDIT_PACKAGES, useCreditBalance } from '@/lib/credits';
+import { CREDIT_PACKAGES, purchaseMockCredits, useCreditBalance } from '@/lib/credits';
+import { useState } from 'react';
 
 type BuyCreditsModalProps = {
   isOpen: boolean;
@@ -10,7 +11,8 @@ type BuyCreditsModalProps = {
 };
 
 export function BuyCreditsModal({ isOpen, onClose }: BuyCreditsModalProps) {
-  const { balance, addCredits } = useCreditBalance();
+  const { balance, isLoading } = useCreditBalance();
+  const [isPendingId, setIsPendingId] = useState<string | null>(null);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Buy credits">
@@ -19,7 +21,9 @@ export function BuyCreditsModal({ isOpen, onClose }: BuyCreditsModalProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
             Current balance
           </p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-zinc-900">{balance}</p>
+          <p className="mt-2 text-3xl font-black tracking-tight text-zinc-900">
+            {isLoading ? '...' : balance}
+          </p>
         </div>
 
         <div className="space-y-3">
@@ -37,13 +41,19 @@ export function BuyCreditsModal({ isOpen, onClose }: BuyCreditsModalProps) {
                 <Button
                   type="button"
                   size="sm"
+                  disabled={isPendingId === pkg.id}
                   className="px-4"
-                  onClick={() => {
-                    addCredits(pkg.credits);
-                    onClose();
+                  onClick={async () => {
+                    setIsPendingId(pkg.id);
+                    try {
+                      await purchaseMockCredits(pkg.credits, pkg.id);
+                      onClose();
+                    } finally {
+                      setIsPendingId(null);
+                    }
                   }}
                 >
-                  Add credits
+                  {isPendingId === pkg.id ? 'Adding...' : 'Add credits'}
                 </Button>
               </div>
             </div>
@@ -51,7 +61,7 @@ export function BuyCreditsModal({ isOpen, onClose }: BuyCreditsModalProps) {
         </div>
 
         <p className="text-xs leading-5 text-zinc-500">
-          MVP mode: credit packs use local mock data for now. This does not touch real billing yet.
+          MVP mode: credit packs write to Supabase mock credit tables for now. This does not touch real billing yet.
         </p>
       </div>
     </Modal>

@@ -36,8 +36,9 @@
   - room composer에서 모바일 / Safari 기준 fallback 안내 문구 분기
   - DM 시작 전 intent modal (`Just chat`, `Dating intro`, `Brand / collab`) 추가
   - 크레딧은 profile stat + DM intent modal에서만 표시
-  - profile에서 mock credit buy modal 추가
-  - special DM room은 intent query 기준 배너 / 배경 테마 반영
+  - `meme.credit_wallets`, `meme.credit_ledger`, `meme.conversation_requests` 실DB 반영
+  - profile에서 mock credit buy modal이 실제 Supabase wallet/ledger에 연결
+  - special DM room은 `conversation_requests` 기준 배너 / 배경 테마 반영
 - duet reference mode
   - 피드의 `play_video` 카드에서 `Try with this clip`으로 `/play?reference=<postId>` 진입 가능
   - `/play`에서 reference clip과 내 카메라를 split-screen으로 합성

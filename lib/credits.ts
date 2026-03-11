@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-const CREDITS_STORAGE_KEY = "motion-meme-credit-balance";
 const CREDITS_EVENT = "motion-meme-credits-updated";
 const DEFAULT_BALANCE = 0;
 
@@ -48,44 +48,60 @@ const emitCreditsUpdated = (balance: number) => {
   );
 };
 
-export const getStoredCreditBalance = () => {
-  if (typeof window === "undefined") {
-    return DEFAULT_BALANCE;
+const getCreditsClient = () => createBrowserSupabaseClient().schema("meme");
+
+export const getViewerCreditBalance = async () => {
+  const supabase = getCreditsClient();
+  const { data, error } = await supabase.rpc("get_viewer_credit_balance");
+
+  if (error) {
+    throw new Error("Credits could not be loaded.");
   }
 
-  const raw = window.localStorage.getItem(CREDITS_STORAGE_KEY);
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_BALANCE;
+  const balance = Number(data ?? 0);
+  emitCreditsUpdated(balance);
+  return balance;
 };
 
-export const setStoredCreditBalance = (balance: number) => {
-  if (typeof window === "undefined") {
-    return DEFAULT_BALANCE;
+export const purchaseMockCredits = async (credits: number, packageId: string) => {
+  const supabase = getCreditsClient();
+  const { data, error } = await supabase.rpc("purchase_mock_credits", {
+    p_credits: credits,
+    p_package_id: packageId,
+  });
+
+  if (error) {
+    throw new Error("Credits could not be added.");
   }
 
-  const normalized = Math.max(0, Math.floor(balance));
-  window.localStorage.setItem(CREDITS_STORAGE_KEY, String(normalized));
-  emitCreditsUpdated(normalized);
-  return normalized;
-};
-
-export const addCredits = (credits: number) =>
-  setStoredCreditBalance(getStoredCreditBalance() + credits);
-
-export const spendCredits = (credits: number) => {
-  const current = getStoredCreditBalance();
-  if (current < credits) {
-    throw new Error("Not enough credits.");
-  }
-
-  return setStoredCreditBalance(current - credits);
+  const balance = Number(data ?? 0);
+  emitCreditsUpdated(balance);
+  return balance;
 };
 
 export const useCreditBalance = () => {
   const [balance, setBalance] = useState(DEFAULT_BALANCE);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setBalance(getStoredCreditBalance());
+    let isMounted = true;
+
+    void getViewerCreditBalance()
+      .then((nextBalance) => {
+        if (isMounted) {
+          setBalance(nextBalance);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setBalance(DEFAULT_BALANCE);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
 
     const handleUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<{ balance?: number }>;
@@ -94,25 +110,25 @@ export const useCreditBalance = () => {
         return;
       }
 
-      setBalance(getStoredCreditBalance());
+      void getViewerCreditBalance().catch(() => {
+        setBalance(DEFAULT_BALANCE);
+      });
     };
 
     window.addEventListener(CREDITS_EVENT, handleUpdate);
-    window.addEventListener("storage", handleUpdate);
 
     return () => {
+      isMounted = false;
       window.removeEventListener(CREDITS_EVENT, handleUpdate);
-      window.removeEventListener("storage", handleUpdate);
     };
   }, []);
 
   return useMemo(
     () => ({
       balance,
-      addCredits,
-      spendCredits,
-      setBalance: setStoredCreditBalance,
+      isLoading,
+      refresh: getViewerCreditBalance,
     }),
-    [balance],
+    [balance, isLoading],
   );
 };

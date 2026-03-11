@@ -36,7 +36,7 @@ export function ProfileHeader({
   const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isCurrentUser = user.relationship.isCurrentUser;
-  const { balance } = useCreditBalance();
+  const { balance, isLoading } = useCreditBalance();
   const visibleTabs = isCurrentUser
     ? PROFILE_TABS
     : PROFILE_TABS.filter((tab) => tab.id !== 'likes');
@@ -121,7 +121,7 @@ export function ProfileHeader({
             onClick={() => setIsBuyCreditsOpen(true)}
             className="flex gap-1.5 rounded-full px-2 py-1 text-left transition-colors hover:bg-zinc-100"
           >
-            <span className="font-bold text-zinc-900">{balance}</span>
+            <span className="font-bold text-zinc-900">{isLoading ? '...' : balance}</span>
             <span className="text-zinc-500">Credits</span>
           </button>
         ) : null}
