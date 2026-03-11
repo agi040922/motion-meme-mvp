@@ -32,6 +32,8 @@
   - 피드 / 프로필 / 좌측 네비게이션에서 DM 진입 가능
   - room presence / typing indicator 2차 보강
   - DM image attachment / screenshot paste / private storage signed URL 지원
+  - inbox를 unread/caught-up 섹션으로 분리
+  - room composer에서 모바일 / Safari 기준 fallback 안내 문구 분기
 - duet reference mode
   - 피드의 `play_video` 카드에서 `Try with this clip`으로 `/play?reference=<postId>` 진입 가능
   - `/play`에서 reference clip과 내 카메라를 split-screen으로 합성

@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { RelativeTime } from "@/components/ui/RelativeTime";
+import { ImageIcon } from "@/components/ui/icons";
+import { useBrowserCapabilities } from "@/lib/browserCapabilities";
 import {
   markConversationRead,
   sendDirectMessage,
@@ -27,12 +29,15 @@ const mergeMessage = (messages: RoomMessage[], incomingMessage: RoomMessage) => 
 export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
   const [messages, setMessages] = useState(room.messages);
   const [draft, setDraft] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [isOtherMemberOnline, setIsOtherMemberOnline] = useState(false);
   const [isOtherMemberTyping, setIsOtherMemberTyping] = useState(false);
   const [isPending, startTransition] = useTransition();
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingChannelRef = useRef<{
     sendTyping: (isTyping: boolean) => Promise<void>;
@@ -46,6 +51,12 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
       avatarUrl: null,
     },
   );
+  const capabilities = useBrowserCapabilities();
+  const composerHint = capabilities.supportsClipboardImagePaste
+    ? "Paste screenshots here. Enter sends, Shift+Enter adds a new line."
+    : capabilities.isSafari || capabilities.isMobile
+      ? "Image paste is limited on this browser. Use Photo for screenshots."
+      : "Use Photo to attach an image. Enter sends, Shift+Enter adds a new line.";
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ block: "end" });
@@ -56,26 +67,68 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
   }, []);
 
   useEffect(() => {
+    if (!selectedImage) {
+      setSelectedImageUrl(null);
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedImage);
+    setSelectedImageUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedImage]);
+
+  useEffect(() => {
+    if (isPending) {
+      return;
+    }
+
+    const handleWindowPaste = (event: ClipboardEvent) => {
+      const pastedImage = Array.from(event.clipboardData?.items ?? []).find((item) =>
+        item.type.startsWith("image/"),
+      );
+      const imageFile = pastedImage?.getAsFile() ?? null;
+
+      if (!imageFile) {
+        return;
+      }
+
+      event.preventDefault();
+      setSelectedImage(imageFile);
+      setSendError(null);
+    };
+
+    window.addEventListener("paste", handleWindowPaste);
+    return () => {
+      window.removeEventListener("paste", handleWindowPaste);
+    };
+  }, [isPending]);
+
+  useEffect(() => {
     void markConversationRead(room.conversationId);
 
     const subscription = subscribeToConversation(
       room.conversationId,
       room.currentUserId,
       (payload) => {
-      setMessages((current) =>
-        mergeMessage(current, {
-          id: payload.id,
-          conversationId: payload.conversation_id,
-          senderUserId: payload.sender_user_id,
-          body: payload.body,
-          createdAt: payload.created_at,
-          sender:
-            payload.sender_user_id === room.currentUserId
-              ? currentUserSenderRef.current
-              : room.otherMember,
-        }),
-      );
-      void markConversationRead(room.conversationId);
+        setMessages((current) =>
+          mergeMessage(current, {
+            id: payload.id,
+            conversationId: payload.conversation_id,
+            senderUserId: payload.sender_user_id,
+            body: payload.body,
+            messageType: payload.message_type,
+            attachment: payload.attachment,
+            createdAt: payload.created_at,
+            sender:
+              payload.sender_user_id === room.currentUserId
+                ? currentUserSenderRef.current
+                : room.otherMember,
+          }),
+        );
+        void markConversationRead(room.conversationId);
       },
       (userIds) => {
         setIsOtherMemberOnline(userIds.includes(room.otherMember.userId));
@@ -113,17 +166,19 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
           />
           <div className="min-w-0">
             <p className="truncate font-semibold text-zinc-900">{room.otherMember.displayName}</p>
-            <p className="truncate text-sm text-zinc-500">
-              @{room.otherMember.handle}
-              <span className="mx-2 text-zinc-300">·</span>
-              {isOtherMemberTyping ? "typing..." : isOtherMemberOnline ? "online" : "offline"}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-zinc-500">
+              <span className="truncate">@{room.otherMember.handle}</span>
+              <span className={`h-2.5 w-2.5 rounded-full ${isOtherMemberTyping || isOtherMemberOnline ? "bg-emerald-500" : "bg-zinc-300"}`} />
+              <span className="truncate">
+                {isOtherMemberTyping ? "typing..." : isOtherMemberOnline ? "online" : "offline"}
+              </span>
+            </div>
           </div>
         </div>
       </header>
 
       <div className="flex flex-1 flex-col px-4 py-5">
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 space-y-3 overflow-y-auto pb-6">
           {messages.length > 0 ? (
             messages.map((message) => {
               const isCurrentUser = message.senderUserId === room.currentUserId;
@@ -133,22 +188,36 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
                   className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-[24px] px-4 py-3 shadow-sm ${
+                    className={`max-w-[85%] overflow-hidden rounded-[24px] shadow-sm ${
                       isCurrentUser
                         ? "bg-black text-white"
                         : "border border-zinc-100 bg-zinc-50 text-zinc-900"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
-                    <div
-                      className={`mt-2 flex items-center gap-2 text-[11px] ${
-                        isCurrentUser ? "text-zinc-300" : "text-zinc-400"
-                      }`}
-                    >
-                      <span>{message.sender.displayName}</span>
-                      <span>·</span>
-                      <RelativeTime dateString={message.createdAt} />
-                      {message.isPending ? <span>· sending</span> : null}
+                    {message.attachment ? (
+                      <div className="overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={message.attachment.url}
+                          alt={message.body.trim() || "Shared photo"}
+                          className="max-h-[360px] w-full object-cover"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="px-4 py-3">
+                      {message.body.trim() ? (
+                        <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
+                      ) : null}
+                      <div
+                        className={`flex items-center gap-2 text-[11px] ${
+                          message.body.trim() ? "mt-2" : ""
+                        } ${isCurrentUser ? "text-zinc-300" : "text-zinc-400"}`}
+                      >
+                        <span>{message.sender.displayName}</span>
+                        <span>·</span>
+                        <RelativeTime dateString={message.createdAt} />
+                        {message.isPending ? <span>· sending</span> : null}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -167,8 +236,46 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
           <div ref={scrollAnchorRef} />
         </div>
 
-        <div className="mt-4 rounded-[28px] border border-zinc-200 bg-white p-3 shadow-sm">
+        <div className="sticky bottom-0 mt-4 rounded-[28px] border border-zinc-200 bg-white p-3 shadow-sm">
+          {selectedImage && selectedImageUrl ? (
+            <div className="mb-3 overflow-hidden rounded-[24px] border border-zinc-200 bg-zinc-50">
+              <div className="aspect-[4/3] w-full bg-zinc-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedImageUrl}
+                  alt={selectedImage.name || "Selected image preview"}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-zinc-900">
+                    {selectedImage.name || "Selected image"}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Ready to send as a DM attachment
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => {
+                    setSelectedImage(null);
+                    setSendError(null);
+                    if (imageInputRef.current) {
+                      imageInputRef.current.value = "";
+                    }
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <textarea
+            form="conversation-message-form"
             ref={textareaRef}
             value={draft}
             onChange={(event) => {
@@ -183,10 +290,24 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
                 void typingChannelRef.current?.sendTyping(false);
               }, 1200);
             }}
+            onPaste={(event) => {
+              const pastedImage = Array.from(event.clipboardData.items).find((item) =>
+                item.type.startsWith("image/"),
+              );
+              const imageFile = pastedImage?.getAsFile() ?? null;
+
+              if (!imageFile) {
+                return;
+              }
+
+              event.preventDefault();
+              setSelectedImage(imageFile);
+              setSendError(null);
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                if (!isPending && draft.trim()) {
+                if (!isPending && (draft.trim() || selectedImage)) {
                   event.currentTarget.form?.requestSubmit();
                 }
               }
@@ -198,41 +319,74 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
           {sendError ? (
             <p className="mt-2 text-sm text-red-500">{sendError}</p>
           ) : null}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(event) => {
+              const nextFile = event.target.files?.[0] ?? null;
+              setSelectedImage(nextFile);
+              setSendError(null);
+            }}
+          />
           <form
+            id="conversation-message-form"
             onSubmit={(event) => {
               event.preventDefault();
               const trimmedDraft = draft.trim();
-              if (!trimmedDraft) {
+              if (!trimmedDraft && !selectedImage) {
                 return;
               }
 
               startTransition(async () => {
                 setSendError(null);
-                const optimisticMessage = toOptimisticRoomMessage(
-                  {
-                    id: `pending-${Date.now()}`,
-                    conversationId: room.conversationId,
-                    senderUserId: room.currentUserId,
-                    body: trimmedDraft,
-                    createdAt: new Date().toISOString(),
-                  },
-                  currentUserSenderRef.current,
-                );
+                const imageToSend = selectedImage;
+                const shouldUseOptimisticTextMessage = !imageToSend;
+                const optimisticMessage = shouldUseOptimisticTextMessage
+                  ? toOptimisticRoomMessage(
+                      {
+                        id: `pending-${Date.now()}`,
+                        conversationId: room.conversationId,
+                        senderUserId: room.currentUserId,
+                        body: trimmedDraft,
+                        createdAt: new Date().toISOString(),
+                      },
+                      currentUserSenderRef.current,
+                    )
+                  : null;
 
-                setMessages((current) => mergeMessage(current, optimisticMessage));
+                if (optimisticMessage) {
+                  setMessages((current) => mergeMessage(current, optimisticMessage));
+                }
+
                 setDraft("");
+                if (imageToSend) {
+                  setSelectedImage(null);
+                  if (imageInputRef.current) {
+                    imageInputRef.current.value = "";
+                  }
+                }
                 void typingChannelRef.current?.sendTyping(false);
 
                 try {
-                  const insertedMessage = await sendDirectMessage(room.conversationId, trimmedDraft);
+                  const insertedMessage = await sendDirectMessage(
+                    room.conversationId,
+                    trimmedDraft,
+                    imageToSend,
+                  );
                   setMessages((current) =>
                     mergeMessage(
-                      current.filter((message) => message.id !== optimisticMessage.id),
+                      optimisticMessage
+                        ? current.filter((message) => message.id !== optimisticMessage.id)
+                        : current,
                       {
                         id: insertedMessage.id,
                         conversationId: insertedMessage.conversation_id,
                         senderUserId: insertedMessage.sender_user_id,
                         body: insertedMessage.body,
+                        messageType: insertedMessage.message_type,
+                        attachment: insertedMessage.attachment,
                         createdAt: insertedMessage.created_at,
                         sender: currentUserSenderRef.current,
                       },
@@ -240,10 +394,15 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
                   );
                   void markConversationRead(room.conversationId);
                 } catch (error) {
-                  setMessages((current) =>
-                    current.filter((message) => message.id !== optimisticMessage.id),
-                  );
+                  if (optimisticMessage) {
+                    setMessages((current) =>
+                      current.filter((message) => message.id !== optimisticMessage.id),
+                    );
+                  }
                   setDraft(trimmedDraft);
+                  if (imageToSend) {
+                    setSelectedImage(imageToSend);
+                  }
                   setSendError(
                     error instanceof Error
                       ? error.message
@@ -254,15 +413,28 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
             }}
             className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3"
           >
-            <p className="text-xs text-zinc-400">
-              Realtime updates appear here while this room is open. Enter sends, Shift+Enter adds a new line.
-            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="rounded-full px-3 text-zinc-600"
+                disabled={isPending}
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Photo
+              </Button>
+              <p className="text-xs text-zinc-400">
+                {composerHint}
+              </p>
+            </div>
             <Button
               type="submit"
               variant="primary"
               size="sm"
               className="px-4"
-              disabled={isPending || !draft.trim()}
+              disabled={isPending || (!draft.trim() && !selectedImage)}
             >
               {isPending ? "Sending..." : "Send"}
             </Button>

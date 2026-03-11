@@ -27,6 +27,10 @@ export const normalizeUploadMimeType = (mimeType: string | null | undefined) => 
 };
 
 export const getSupportedRecorderMimeType = () => {
+  if (typeof MediaRecorder === "undefined" || typeof MediaRecorder.isTypeSupported !== "function") {
+    return "";
+  }
+
   const candidates = [
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
@@ -69,3 +73,46 @@ export const canvasToJpegFile = async (
       0.88,
     );
   });
+
+export const videoBlobToJpegFile = async (
+  blob: Blob,
+  name: string,
+) => {
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const video = document.createElement("video");
+    video.src = objectUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+
+    await new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error("Failed to load recorded video."));
+    });
+
+    video.currentTime = Math.min(0.05, Math.max(video.duration || 0, 0));
+
+    await new Promise<void>((resolve) => {
+      const finish = () => resolve();
+      video.onseeked = finish;
+      if (video.readyState >= 2) {
+        finish();
+      }
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 960;
+    canvas.height = video.videoHeight || 540;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Canvas context could not be created.");
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvasToJpegFile(canvas, name);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
