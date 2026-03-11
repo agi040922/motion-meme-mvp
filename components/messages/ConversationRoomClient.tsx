@@ -19,6 +19,49 @@ type ConversationRoomClientProps = {
   room: ConversationRoom;
 };
 
+const FlowerSticker = ({
+  className,
+  petalClassName,
+  centerClassName,
+}: {
+  className: string;
+  petalClassName: string;
+  centerClassName: string;
+}) => (
+  <div className={`pointer-events-none absolute ${className}`}>
+    <div className="relative h-full w-full">
+      <span className={`absolute left-1/2 top-0 h-[38%] w-[38%] -translate-x-1/2 rounded-full ${petalClassName}`} />
+      <span className={`absolute left-0 top-1/2 h-[38%] w-[38%] -translate-y-1/2 rounded-full ${petalClassName}`} />
+      <span className={`absolute right-0 top-1/2 h-[38%] w-[38%] -translate-y-1/2 rounded-full ${petalClassName}`} />
+      <span className={`absolute bottom-0 left-1/2 h-[38%] w-[38%] -translate-x-1/2 rounded-full ${petalClassName}`} />
+      <span className={`absolute left-1/2 top-1/2 h-[38%] w-[38%] -translate-x-1/2 -translate-y-1/2 rounded-full ${petalClassName}`} />
+      <span className={`absolute left-1/2 top-1/2 h-[22%] w-[22%] -translate-x-1/2 -translate-y-1/2 rounded-full ${centerClassName}`} />
+    </div>
+  </div>
+);
+
+const DatingIntroDecorations = () => (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <FlowerSticker
+      className="-left-6 top-24 h-28 w-28 rotate-[-10deg] opacity-80 blur-[0.2px]"
+      petalClassName="bg-rose-200/80 shadow-[0_8px_24px_rgba(244,114,182,0.18)]"
+      centerClassName="bg-amber-200/90"
+    />
+    <FlowerSticker
+      className="right-6 top-28 hidden h-24 w-24 rotate-[12deg] opacity-70 md:block"
+      petalClassName="bg-fuchsia-200/75 shadow-[0_8px_20px_rgba(217,70,239,0.16)]"
+      centerClassName="bg-yellow-200/90"
+    />
+    <FlowerSticker
+      className="bottom-28 right-[-12px] h-32 w-32 rotate-[18deg] opacity-65"
+      petalClassName="bg-rose-100/80 shadow-[0_10px_26px_rgba(244,114,182,0.16)]"
+      centerClassName="bg-amber-100/90"
+    />
+    <div className="absolute left-10 top-40 h-24 w-24 rounded-full bg-rose-200/20 blur-3xl" />
+    <div className="absolute bottom-16 right-20 h-32 w-32 rounded-full bg-fuchsia-200/20 blur-3xl" />
+  </div>
+);
+
 const mergeMessage = (messages: RoomMessage[], incomingMessage: RoomMessage) => {
   const deduped = messages.filter((message) => message.id !== incomingMessage.id);
   return [...deduped, incomingMessage].sort((left, right) =>
@@ -161,6 +204,7 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
             : "bg-white"
       }`}
     >
+      {isDatingIntro ? <DatingIntroDecorations /> : null}
       <header className="sticky top-0 z-20 border-b border-zinc-100 bg-white/90 px-4 py-4 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Link
@@ -187,7 +231,7 @@ export function ConversationRoomClient({ room }: ConversationRoomClientProps) {
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col px-4 py-5">
+      <div className="relative z-10 flex flex-1 flex-col px-4 py-5">
         {room.specialRequest ? (
           <div
             className={`mb-4 rounded-[28px] border px-5 py-4 ${
