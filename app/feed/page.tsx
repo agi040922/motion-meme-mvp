@@ -88,12 +88,6 @@ export default async function FeedPage({
               </Link>
             ))}
           </div>
-
-          <div className="mt-4 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500">
-            {sortMode === "popular"
-              ? "Hot Right Now favors clips getting fast likes, comments, and recent momentum."
-              : "Latest Runs shows the newest public uploads and conversations in strict time order."}
-          </div>
         </div>
 
         {/* Feed Content */}

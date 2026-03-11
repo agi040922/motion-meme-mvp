@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { MenuToggleIcon } from '@/components/ui/menu-toggle-icon';
 import { useScroll } from '@/components/ui/use-scroll';
 import { cn } from '@/lib/utils';
@@ -194,7 +194,7 @@ export function Header({
 
           <Button
             size="icon"
-            variant="outline"
+            variant="secondary"
             onClick={() => setOpen((prevOpen) => !prevOpen)}
             className={cn('md:hidden', {
               'border-white/20 bg-white/8 text-white hover:bg-white/14': !isLightSurface,
