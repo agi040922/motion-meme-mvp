@@ -542,7 +542,7 @@ const mapFeedRowsForViewer = async (
   );
 };
 
-export const listFeedPosts = cache(async (sort: FeedSort = "latest") => {
+export const listFeedPosts = async (sort: FeedSort = "latest") => {
   const supabase = getMemeServerClient();
   const viewer = await getCurrentUser();
 
@@ -577,7 +577,7 @@ export const listFeedPosts = cache(async (sort: FeedSort = "latest") => {
   );
 
   return mapFeedRowsForViewer(rows, viewer?.id ?? null, relationshipState);
-});
+};
 
 export const getProfileByHandle = cache(async (handle: string) => {
   const supabase = getMemeServerClient();

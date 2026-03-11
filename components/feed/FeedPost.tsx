@@ -602,7 +602,7 @@ export function FeedPost({ post, currentUser }: FeedPostProps) {
             </div>
           )}
 
-          {post.kind === 'stage_result' && isVideo && !isCurrentUsersPost ? (
+          {(post.kind === 'stage_result' || post.kind === 'video') && isVideo && !isCurrentUsersPost ? (
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Link
                 href={`/play?reference=${post.id}`}
