@@ -163,7 +163,7 @@ declare
   v_user_id uuid;
   v_conversation_id uuid;
   v_request_id uuid;
-  v_balance integer;
+  v_current_balance integer;
   v_cost integer;
   v_theme text;
 begin
@@ -198,13 +198,13 @@ begin
   values (v_user_id, 0)
   on conflict (user_id) do nothing;
 
-  select balance
-    into v_balance
-  from meme.credit_wallets
-  where user_id = v_user_id
+  select cw.balance
+    into v_current_balance
+  from meme.credit_wallets cw
+  where cw.user_id = v_user_id
   for update;
 
-  if coalesce(v_balance, 0) < v_cost then
+  if coalesce(v_current_balance, 0) < v_cost then
     raise exception 'Not enough credits';
   end if;
 
@@ -212,21 +212,21 @@ begin
 
   select id
     into v_request_id
-  from meme.conversation_requests
-  where conversation_id = v_conversation_id
-    and requester_user_id = v_user_id
-    and target_user_id = p_other_user_id
-    and intent = p_intent
-    and status = 'sent'
-  order by created_at desc
+  from meme.conversation_requests cr
+  where cr.conversation_id = v_conversation_id
+    and cr.requester_user_id = v_user_id
+    and cr.target_user_id = p_other_user_id
+    and cr.intent = p_intent
+    and cr.status = 'sent'
+  order by cr.created_at desc
   limit 1;
 
   if v_request_id is null then
-    update meme.credit_wallets
-    set balance = balance - v_cost,
+    update meme.credit_wallets cw
+    set balance = cw.balance - v_cost,
         updated_at = now()
-    where user_id = v_user_id
-    returning balance into v_balance;
+    where cw.user_id = v_user_id
+    returning cw.balance into v_current_balance;
 
     insert into meme.credit_ledger (
       user_id,
@@ -239,7 +239,7 @@ begin
     values (
       v_user_id,
       -v_cost,
-      v_balance,
+      v_current_balance,
       p_intent || '_send',
       'conversation_request',
       jsonb_build_object(
@@ -273,7 +273,7 @@ begin
   end if;
 
   return query
-  select v_conversation_id, v_request_id, v_balance;
+  select v_conversation_id, v_request_id, v_current_balance;
 end;
 $$;
 
