@@ -403,7 +403,7 @@ export const updatePost = async (postId: string, caption: string) => {
 };
 
 export const deleteComment = async (commentId: string) => {
-  const userId = await requireSignedInUserId();
+  await requireSignedInUserId();
   const supabase = getMemeBrowserClient();
   const mediaResult = await supabase
     .from("comment_media")
@@ -414,16 +414,11 @@ export const deleteComment = async (commentId: string) => {
     throw new Error("Comment media could not be loaded for deletion.");
   }
 
-  const { data, error } = await supabase
-    .from("post_comments")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", commentId)
-    .eq("author_user_id", userId)
-    .is("deleted_at", null)
-    .select("id")
-    .maybeSingle();
+  const { error } = await supabase.rpc("soft_delete_own_comment", {
+    p_comment_id: commentId,
+  });
 
-  if (error || !data) {
+  if (error) {
     throw new Error("Comment could not be deleted. Please try again.");
   }
 
